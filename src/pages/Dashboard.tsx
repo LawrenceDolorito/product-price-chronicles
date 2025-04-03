@@ -14,7 +14,7 @@ const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   
   // Get unique categories from products
   const categories = Array.from(
@@ -26,9 +26,9 @@ const Dashboard = () => {
     const matchesSearch = product.name
       .toLowerCase()
       .includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter
-      ? product.category === categoryFilter
-      : true;
+    const matchesCategory = categoryFilter === "all"
+      ? true
+      : product.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
   
@@ -73,7 +73,7 @@ const Dashboard = () => {
                   <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Categories</SelectItem>
+                  <SelectItem value="all">All Categories</SelectItem>
                   {categories.map((category) => (
                     <SelectItem key={category} value={category}>
                       {category}
