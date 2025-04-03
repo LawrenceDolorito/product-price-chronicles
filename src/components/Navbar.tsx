@@ -54,6 +54,14 @@ const Navbar: React.FC = () => {
                 Dashboard
               </Button>
               <Button
+                onClick={() => navigate("/products")}
+                variant="ghost"
+                size="sm"
+                className="text-gray-600"
+              >
+                Products
+              </Button>
+              <Button
                 onClick={handleLogout}
                 variant="ghost"
                 size="sm"

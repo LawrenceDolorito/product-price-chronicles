@@ -310,7 +310,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_products_with_current_price: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          prodcode: string
+          description: string
+          unit: string
+          current_price: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
