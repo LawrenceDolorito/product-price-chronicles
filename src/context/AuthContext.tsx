@@ -1,6 +1,5 @@
-
 import React, { createContext, useState, useContext, useEffect } from "react";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 type User = {
   id: string;
@@ -25,7 +24,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
   useEffect(() => {
-    // Check if user is logged in from localStorage
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       setUser(JSON.parse(storedUser));
@@ -37,14 +35,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
-      // Mock login for demonstration
-      // In a real app, you would make an API call here
-      
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      // For demo purposes, any email and password will work
-      // except empty strings
       if (!email || !password) {
         toast.error("Please enter email and password");
         setIsLoading(false);
@@ -74,14 +64,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (name: string, email: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
-      // Mock signup for demonstration
-      // In a real app, you would make an API call here
-      
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      // For demo purposes, any email and password will work
-      // except empty strings
       if (!name || !email || !password) {
         toast.error("Please fill in all fields");
         setIsLoading(false);
