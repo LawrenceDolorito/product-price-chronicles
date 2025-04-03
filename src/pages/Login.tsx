@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, UserPlus, Mail, Lock } from "lucide-react";
+import { User, UserPlus, Mail, Lock, User2, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 
 const Login = () => {
-  const { login, signup, isLoading } = useAuth();
+  const { login, signup, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   
   // Login form state
@@ -18,10 +19,18 @@ const Login = () => {
   const [loginPassword, setLoginPassword] = useState("");
   
   // Signup form state
-  const [signupName, setSignupName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/dashboard");
+    }
+  }, [isAuthenticated, navigate]);
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,13 +44,18 @@ const Login = () => {
     e.preventDefault();
     
     if (signupPassword !== signupConfirmPassword) {
-      alert("Passwords do not match");
+      toast.error("Passwords do not match");
       return;
     }
     
-    const success = await signup(signupName, signupEmail, signupPassword);
+    const success = await signup(signupEmail, signupPassword, firstName, lastName);
     if (success) {
-      navigate("/dashboard");
+      // Reset form after successful signup
+      setSignupEmail("");
+      setSignupPassword("");
+      setSignupConfirmPassword("");
+      setFirstName("");
+      setLastName("");
     }
   };
   
@@ -106,62 +120,114 @@ const Login = () => {
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? "Logging in..." : "Login"}
                   </Button>
+                  
+                  <div className="text-sm text-center text-gray-500">
+                    <span>Don't have an account? </span>
+                    <button 
+                      type="button"
+                      onClick={() => document.querySelector('[data-value="signup"]')?.click()}
+                      className="text-primary hover:underline focus:outline-none"
+                    >
+                      Sign up
+                    </button>
+                  </div>
                 </form>
               </TabsContent>
               
               <TabsContent value="signup">
                 <form onSubmit={handleSignup} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input
-                      id="name"
-                      type="text"
-                      placeholder="John Doe"
-                      value={signupName}
-                      onChange={(e) => setSignupName(e.target.value)}
-                      required
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="first-name">First Name</Label>
+                      <div className="relative">
+                        <User2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                        <Input
+                          id="first-name"
+                          type="text"
+                          placeholder="John"
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                          className="pl-10"
+                          required
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="last-name">Last Name</Label>
+                      <Input
+                        id="last-name"
+                        type="text"
+                        placeholder="Doe"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        required
+                      />
+                    </div>
                   </div>
                   
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="you@example.com"
-                      value={signupEmail}
-                      onChange={(e) => setSignupEmail(e.target.value)}
-                      required
-                    />
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                      <Input
+                        id="signup-email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={signupEmail}
+                        onChange={(e) => setSignupEmail(e.target.value)}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
                   </div>
                   
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Password</Label>
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={signupPassword}
-                      onChange={(e) => setSignupPassword(e.target.value)}
-                      required
-                    />
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                      <Input
+                        id="signup-password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={signupPassword}
+                        onChange={(e) => setSignupPassword(e.target.value)}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
                   </div>
                   
                   <div className="space-y-2">
                     <Label htmlFor="confirm-password">Confirm Password</Label>
-                    <Input
-                      id="confirm-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={signupConfirmPassword}
-                      onChange={(e) => setSignupConfirmPassword(e.target.value)}
-                      required
-                    />
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                      <Input
+                        id="confirm-password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={signupConfirmPassword}
+                        onChange={(e) => setSignupConfirmPassword(e.target.value)}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
                   </div>
                   
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? "Creating Account..." : "Create Account"}
                   </Button>
+                  
+                  <div className="text-sm text-center text-gray-500">
+                    <span>Already have an account? </span>
+                    <button 
+                      type="button"
+                      onClick={() => document.querySelector('[data-value="login"]')?.click()}
+                      className="text-primary hover:underline focus:outline-none"
+                    >
+                      Log in
+                    </button>
+                  </div>
                 </form>
               </TabsContent>
             </CardContent>
@@ -170,6 +236,12 @@ const Login = () => {
           <CardFooter className="flex flex-col space-y-2 mt-4">
             <div className="text-sm text-gray-500 text-center">
               By continuing, you agree to our Terms of Service and Privacy Policy.
+            </div>
+            
+            {/* Supabase Authentication Note */}
+            <div className="flex items-center justify-center text-xs text-amber-700 bg-amber-50 p-2 rounded-md">
+              <AlertCircle className="w-4 h-4 mr-2" />
+              <span>For testing, verify email confirmation is turned off in Supabase.</span>
             </div>
           </CardFooter>
         </Card>

@@ -7,8 +7,13 @@ import { Search, ShoppingCart, User, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 const Navbar: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, profile, logout } = useAuth();
   const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
@@ -38,7 +43,7 @@ const Navbar: React.FC = () => {
           {user ? (
             <>
               <span className="hidden md:inline text-sm text-gray-600">
-                Hello, {user.name}
+                Hello, {profile?.first_name || user.email?.split('@')[0]}
               </span>
               <Button
                 onClick={() => navigate("/dashboard")}
@@ -49,7 +54,7 @@ const Navbar: React.FC = () => {
                 Dashboard
               </Button>
               <Button
-                onClick={logout}
+                onClick={handleLogout}
                 variant="ghost"
                 size="sm"
                 className="text-gray-600"
