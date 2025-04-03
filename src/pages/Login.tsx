@@ -59,6 +59,16 @@ const Login = () => {
     }
   };
   
+  const switchToSignup = () => {
+    const signupTab = document.querySelector('[data-value="signup"]') as HTMLElement;
+    if (signupTab) signupTab.click();
+  };
+
+  const switchToLogin = () => {
+    const loginTab = document.querySelector('[data-value="login"]') as HTMLElement;
+    if (loginTab) loginTab.click();
+  };
+  
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 auth-container">
       <div className="max-w-md w-full space-y-8">
@@ -125,7 +135,7 @@ const Login = () => {
                     <span>Don't have an account? </span>
                     <button 
                       type="button"
-                      onClick={() => document.querySelector('[data-value="signup"]')?.click()}
+                      onClick={switchToSignup}
                       className="text-primary hover:underline focus:outline-none"
                     >
                       Sign up
@@ -222,7 +232,7 @@ const Login = () => {
                     <span>Already have an account? </span>
                     <button 
                       type="button"
-                      onClick={() => document.querySelector('[data-value="login"]')?.click()}
+                      onClick={switchToLogin}
                       className="text-primary hover:underline focus:outline-none"
                     >
                       Log in

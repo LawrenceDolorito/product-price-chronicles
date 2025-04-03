@@ -68,10 +68,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = async (userId: string) => {
     try {
+      // Use the correct way to query the profiles table with the current types
       const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
+        .from('profiles')
+        .select('id, first_name, last_name, avatar_url')
+        .eq('id', userId)
         .single();
         
       if (error) {
@@ -80,7 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       if (data) {
-        setProfile(data);
+        setProfile(data as Profile);
       }
     } catch (error) {
       console.error("Profile fetch error:", error);
@@ -148,20 +149,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
       
-      // Update the profile with first and last name
-      if (data.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({
-            first_name: firstName,
-            last_name: lastName,
-          })
-          .eq('id', data.user.id);
-        
-        if (profileError) {
-          console.error("Error updating profile:", profileError);
-        }
-      }
+      // The profile is created automatically by the database trigger
+      // we created, so no need to create it here
 
       toast.success("Account created successfully! Please check your email to verify your account.");
       return true;
