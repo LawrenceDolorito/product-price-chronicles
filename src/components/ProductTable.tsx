@@ -33,8 +33,12 @@ const ProductTable = () => {
         setLoading(true);
         
         // This query gets all products with their latest price from pricehist
+        // Use type assertion to work around the TypeScript error
         const { data, error } = await supabase
-          .rpc('get_products_with_current_price');
+          .rpc('get_products_with_current_price') as {
+            data: ProductWithPrice[] | null;
+            error: Error | null;
+          };
 
         if (error) {
           throw error;
