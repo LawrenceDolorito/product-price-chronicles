@@ -3,8 +3,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Search, ShoppingCart, User, LogOut } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { ShoppingCart, User, LogOut } from "lucide-react";
 
 const Navbar: React.FC = () => {
   const { user, profile, logout } = useAuth();
@@ -26,17 +25,6 @@ const Navbar: React.FC = () => {
             <ShoppingCart className="mr-2" />
             PriceTracker
           </a>
-        </div>
-        
-        <div className="hidden md:flex flex-1 max-w-md mx-4">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-            <Input
-              type="text"
-              placeholder="Search products..."
-              className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:ring-primary focus:border-primary"
-            />
-          </div>
         </div>
         
         <div className="flex items-center gap-4">

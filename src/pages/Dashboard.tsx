@@ -145,7 +145,7 @@ const Dashboard = () => {
                   description: `Unit: ${product.unit || 'N/A'}`,
                   currentPrice: product.current_price || 0,
                   currency: "$",
-                  imageUrl: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?q=80&w=2942&auto=format&fit=crop",
+                  imageUrl: `https://source.unsplash.com/400x300/?${encodeURIComponent(product.description || product.prodcode)}`,
                   category: product.unit || 'Uncategorized',
                   priceHistory: [
                     { date: new Date().toISOString().slice(0, 10), price: product.current_price || 0 }
