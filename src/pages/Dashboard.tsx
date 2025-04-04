@@ -3,12 +3,13 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
-import ProductCard from "@/components/ProductCard";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Search, PlusCircle, Filter, Loader2 } from "lucide-react";
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Card, CardContent } from "@/components/ui/card";
 
 type ProductWithPrice = {
   prodcode: string;
@@ -76,53 +77,53 @@ const Dashboard = () => {
       <main className="container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Product Dashboard</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Product Inventory</h1>
             <p className="text-gray-600 mt-1">
-              Track prices and save money on your favorite products
+              Manage your product catalog and track prices
             </p>
           </div>
           
           <Button
-            onClick={() => alert("Feature coming soon!")}
+            onClick={() => navigate("/products")}
             className="flex items-center gap-2"
           >
             <PlusCircle size={16} />
-            <span>Add New Product</span>
+            <span>View Product Table</span>
           </Button>
         </div>
         
-        <div className="bg-white p-4 rounded-lg shadow-sm mb-8">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-grow">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-              <Input
-                type="text"
-                placeholder="Search products..."
-                className="pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+        <Card className="mb-8">
+          <CardContent className="p-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="relative flex-grow">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                <Input
+                  type="text"
+                  placeholder="Search products by code or description..."
+                  className="pl-10"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              
+              <div className="w-full md:w-48">
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Units" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Units</SelectItem>
+                    {units.map((unit) => (
+                      <SelectItem key={unit} value={unit}>
+                        {unit}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            
-            <div className="w-full md:w-48">
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Units" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Units</SelectItem>
-                  {units.map((unit) => (
-                    <SelectItem key={unit} value={unit}>
-                      {unit}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
-        
-        <h2 className="text-xl font-semibold mb-4">All Products</h2>
+          </CardContent>
+        </Card>
         
         {loading ? (
           <div className="flex justify-center items-center h-64">
@@ -134,35 +135,60 @@ const Dashboard = () => {
             <p>{error}</p>
             <Button onClick={() => navigate(0)} className="mt-2">Retry</Button>
           </div>
-        ) : filteredProducts.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProducts.map((product) => (
-              <ProductCard 
-                key={product.prodcode} 
-                product={{
-                  id: product.prodcode,
-                  name: product.description || 'Unnamed Product',
-                  description: `Unit: ${product.unit || 'N/A'}`,
-                  currentPrice: product.current_price || 0,
-                  currency: "$",
-                  imageUrl: `https://source.unsplash.com/400x300/?${encodeURIComponent(product.description || product.prodcode)}`,
-                  category: product.unit || 'Uncategorized',
-                  priceHistory: [
-                    { date: new Date().toISOString().slice(0, 10), price: product.current_price || 0 }
-                  ],
-                  lowestPrice: product.current_price || 0,
-                  highestPrice: product.current_price || 0,
-                }} 
-              />
-            ))}
-          </div>
         ) : (
-          <div className="text-center py-12">
-            <Filter className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-lg font-medium text-gray-900">No products found</h3>
-            <p className="mt-1 text-gray-500">
-              Try adjusting your search or filter to find what you're looking for.
-            </p>
+          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+            <Table>
+              <TableCaption>
+                {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} found
+              </TableCaption>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Product Code</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Unit</TableHead>
+                  <TableHead className="text-right">Current Price</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredProducts.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
+                      <Filter className="mx-auto h-12 w-12 text-gray-400 mb-2" />
+                      <p className="text-lg font-medium text-gray-900">No products found</p>
+                      <p className="mt-1 text-gray-500">
+                        Try adjusting your search or filter to find what you're looking for.
+                      </p>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredProducts.map((product) => (
+                    <TableRow key={product.prodcode} className="cursor-pointer hover:bg-gray-50" onClick={() => navigate(`/product/${product.prodcode}`)}>
+                      <TableCell className="font-medium">{product.prodcode}</TableCell>
+                      <TableCell>{product.description || "—"}</TableCell>
+                      <TableCell>{product.unit || "—"}</TableCell>
+                      <TableCell className="text-right">
+                        {product.current_price !== null
+                          ? `$${product.current_price.toFixed(2)}`
+                          : "—"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/product/${product.prodcode}`);
+                          }}
+                        >
+                          View
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </div>
         )}
       </main>

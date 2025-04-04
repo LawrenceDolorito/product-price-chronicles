@@ -3,7 +3,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, User, LogOut } from "lucide-react";
+import { Package, User, LogOut } from "lucide-react";
 
 const Navbar: React.FC = () => {
   const { user, profile, logout } = useAuth();
@@ -22,8 +22,8 @@ const Navbar: React.FC = () => {
             href="/" 
             className="font-bold text-xl text-primary flex items-center"
           >
-            <ShoppingCart className="mr-2" />
-            PriceTracker
+            <Package className="mr-2" />
+            Product Manager
           </a>
         </div>
         
@@ -47,7 +47,7 @@ const Navbar: React.FC = () => {
                 size="sm"
                 className="text-gray-600"
               >
-                Products
+                Products Table
               </Button>
               <Button
                 onClick={handleLogout}
