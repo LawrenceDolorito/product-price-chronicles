@@ -12,7 +12,8 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Loader2, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 type ProductWithPrice = {
   prodcode: string;
@@ -56,6 +57,19 @@ const ProductTable = () => {
     fetchProducts();
   }, []);
 
+  const handleEdit = (e: React.MouseEvent, prodcode: string) => {
+    e.stopPropagation();
+    navigate(`/product/${prodcode}`);
+    // In a real app, you might want to navigate to an edit form
+    // navigate(`/products/edit/${prodcode}`);
+  };
+
+  const handleDelete = (e: React.MouseEvent, prodcode: string) => {
+    e.stopPropagation();
+    // This is just a placeholder - in a real app you would delete the product
+    toast.info(`Delete functionality would remove product: ${prodcode}`);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -84,12 +98,13 @@ const ProductTable = () => {
             <TableHead>Description</TableHead>
             <TableHead>Unit</TableHead>
             <TableHead className="text-right">Current Price</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {products.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
+              <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
                 No products found
               </TableCell>
             </TableRow>
@@ -103,6 +118,25 @@ const ProductTable = () => {
                   {product.current_price !== null
                     ? `$${product.current_price.toFixed(2)}`
                     : "—"}
+                </TableCell>
+                <TableCell className="text-right flex justify-end gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={(e) => handleEdit(e, product.prodcode)}
+                  >
+                    <Pencil size={16} />
+                    <span className="hidden sm:inline ml-1">Edit</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="text-red-500 hover:text-red-700"
+                    onClick={(e) => handleDelete(e, product.prodcode)}
+                  >
+                    <Trash2 size={16} />
+                    <span className="hidden sm:inline ml-1">Delete</span>
+                  </Button>
                 </TableCell>
               </TableRow>
             ))

@@ -7,7 +7,7 @@ import Navbar from "@/components/Navbar";
 import PriceChart from "@/components/PriceChart";
 import { Product } from "@/types/types";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Bell, Share2, ArrowDown, ArrowUp, Minus, ShoppingCart, TrendingUp } from "lucide-react";
+import { ArrowLeft, Bell, Share2, ArrowDown, ArrowUp, Minus, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
@@ -107,7 +107,7 @@ const ProductDetail = () => {
     description: `Unit: ${unit || 'N/A'}`,
     currentPrice: current_price || 0,
     currency: "$",
-    imageUrl: `https://source.unsplash.com/800x600/?${encodeURIComponent(description || prodcode)}`,
+    imageUrl: "",
     category: unit || 'Uncategorized',
     priceHistory: [
       { date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10), price: (current_price || 0) * 1.1 },
@@ -149,130 +149,111 @@ const ProductDetail = () => {
         </Button>
         
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6">
-            <div className="flex flex-col">
-              <div className="bg-gray-100 rounded-lg overflow-hidden h-80">
-                <img 
-                  src={product.imageUrl} 
-                  alt={product.name} 
-                  className="w-full h-full object-contain p-4"
-                />
-              </div>
-              
-              <div className="mt-6">
-                <h2 className="text-lg font-medium text-gray-900 mb-2">Price History</h2>
-                <PriceChart
-                  priceHistory={product.priceHistory}
-                  lowestPrice={product.lowestPrice}
-                  highestPrice={product.highestPrice}
-                  currency={product.currency}
-                />
+          <div className="p-6">
+            <div className="flex justify-between items-start mb-2">
+              <Badge className="mb-2">{product.category}</Badge>
+              <HoverCard>
+                <HoverCardTrigger asChild>
+                  <div className="flex items-center text-gray-600 cursor-help">
+                    <TrendingUp size={16} className="mr-1" />
+                    <span className="text-sm font-medium">Sales</span>
+                  </div>
+                </HoverCardTrigger>
+                <HoverCardContent className="w-80">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-500">Total sales:</span>
+                    <span className="font-medium">{salesData.totalSales} units</span>
+                  </div>
+                  <div className="flex justify-between mt-2">
+                    <span className="text-sm text-gray-500">Monthly sales:</span>
+                    <span className="font-medium">{salesData.monthlySales} units</span>
+                  </div>
+                  <div className="mt-2 text-xs text-gray-500">
+                    This product is performing {salesData.monthlySales > 50 ? 'above' : 'below'} average.
+                  </div>
+                </HoverCardContent>
+              </HoverCard>
+            </div>
+            
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">{product.name}</h1>
+            <div className="text-sm text-gray-500 mb-4">Product Code: {prodcode}</div>
+            
+            <div className="flex items-baseline gap-3 mt-4">
+              <span className="text-3xl font-bold text-primary">{product.currency}{current_price}</span>
+              {!isPriceUnchanged && (
+                <span className={`text-sm font-medium ${isPriceDown ? 'text-green-600' : 'text-red-600'}`}>
+                  {isPriceDown ? <ArrowDown size={18} className="inline mr-1" /> : <ArrowUp size={18} className="inline mr-1" />}
+                  {Math.abs(Number(priceChangePercent))}% since last month
+                </span>
+              )}
+              {isPriceUnchanged && (
+                <span className="text-sm font-medium text-gray-500">
+                  <Minus size={18} className="inline mr-1" /> Unchanged
+                </span>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-3 mt-2 text-sm text-gray-500">
+              <span>All-time low: {product.currency}{product.lowestPrice.toFixed(2)}</span>
+              <span>•</span>
+              <span>All-time high: {product.currency}{product.highestPrice.toFixed(2)}</span>
+            </div>
+            
+            <div className="flex gap-4 mt-6">
+              <Button onClick={handleTrackPrice} className="flex-1">
+                <Bell className="mr-2" size={18} />
+                Track Price
+              </Button>
+              <Button variant="outline" onClick={handleShare}>
+                <Share2 size={18} />
+              </Button>
+            </div>
+            
+            <Separator className="my-6" />
+            
+            <div>
+              <h2 className="text-lg font-medium text-gray-900 mb-3">About this product</h2>
+              <p className="text-gray-600">{product.description}</p>
+              <div className="mt-4 p-2 bg-gray-50 rounded">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">Unit</span>
+                  <span>{unit || 'N/A'}</span>
+                </div>
               </div>
             </div>
             
-            <div>
-              <div className="flex justify-between items-start mb-2">
-                <Badge className="mb-2">{product.category}</Badge>
-                <HoverCard>
-                  <HoverCardTrigger asChild>
-                    <div className="flex items-center text-gray-600 cursor-help">
-                      <TrendingUp size={16} className="mr-1" />
-                      <span className="text-sm font-medium">Sales</span>
-                    </div>
-                  </HoverCardTrigger>
-                  <HoverCardContent className="w-80">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Total sales:</span>
-                      <span className="font-medium">{salesData.totalSales} units</span>
-                    </div>
-                    <div className="flex justify-between mt-2">
-                      <span className="text-sm text-gray-500">Monthly sales:</span>
-                      <span className="font-medium">{salesData.monthlySales} units</span>
-                    </div>
-                    <div className="mt-2 text-xs text-gray-500">
-                      This product is performing {salesData.monthlySales > 50 ? 'above' : 'below'} average.
-                    </div>
-                  </HoverCardContent>
-                </HoverCard>
-              </div>
-              
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">{product.name}</h1>
-              <div className="text-sm text-gray-500 mb-4">Product Code: {prodcode}</div>
-              
-              <div className="flex items-baseline gap-3 mt-4">
-                <span className="text-3xl font-bold text-primary">{product.currency}{current_price}</span>
-                {!isPriceUnchanged && (
-                  <span className={`text-sm font-medium ${isPriceDown ? 'text-green-600' : 'text-red-600'}`}>
-                    {isPriceDown ? <ArrowDown size={18} className="inline mr-1" /> : <ArrowUp size={18} className="inline mr-1" />}
-                    {Math.abs(Number(priceChangePercent))}% since last month
+            <div className="mt-6">
+              <h2 className="text-lg font-medium text-gray-900 mb-2">Price History</h2>
+              <PriceChart
+                priceHistory={product.priceHistory}
+                lowestPrice={product.lowestPrice}
+                highestPrice={product.highestPrice}
+                currency={product.currency}
+              />
+            </div>
+            
+            <div className="mt-6 bg-gray-50 p-4 rounded-lg">
+              <h3 className="font-medium text-gray-900 mb-2">Price Analysis</h3>
+              <ul className="space-y-2 text-sm">
+                <li className="flex justify-between">
+                  <span>Current vs. Average</span>
+                  <span className={`font-medium ${current_price < (product.lowestPrice + product.highestPrice) / 2 ? 'text-green-600' : 'text-red-600'}`}>
+                    {current_price < (product.lowestPrice + product.highestPrice) / 2 ? 'Below average' : 'Above average'}
                   </span>
-                )}
-                {isPriceUnchanged && (
-                  <span className="text-sm font-medium text-gray-500">
-                    <Minus size={18} className="inline mr-1" /> Unchanged
+                </li>
+                <li className="flex justify-between">
+                  <span>Price Volatility</span>
+                  <span className="font-medium">
+                    {(product.highestPrice - product.lowestPrice) / product.highestPrice > 0.2 ? 'High' : 'Low'}
                   </span>
-                )}
-              </div>
-              
-              <div className="flex items-center gap-3 mt-2 text-sm text-gray-500">
-                <span>All-time low: {product.currency}{product.lowestPrice.toFixed(2)}</span>
-                <span>•</span>
-                <span>All-time high: {product.currency}{product.highestPrice.toFixed(2)}</span>
-              </div>
-              
-              <div className="flex gap-4 mt-6">
-                <Button onClick={handleTrackPrice} className="flex-1">
-                  <Bell className="mr-2" size={18} />
-                  Track Price
-                </Button>
-                <Button variant="outline" onClick={handleShare}>
-                  <Share2 size={18} />
-                </Button>
-              </div>
-              
-              <Separator className="my-6" />
-              
-              <div>
-                <h2 className="text-lg font-medium text-gray-900 mb-3">About this product</h2>
-                <p className="text-gray-600">{product.description}</p>
-                <div className="mt-4 p-2 bg-gray-50 rounded">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Unit</span>
-                    <span>{unit || 'N/A'}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mt-6 bg-gray-50 p-4 rounded-lg">
-                <h3 className="font-medium text-gray-900 mb-2">Price Analysis</h3>
-                <ul className="space-y-2 text-sm">
-                  <li className="flex justify-between">
-                    <span>Current vs. Average</span>
-                    <span className={`font-medium ${current_price < (product.lowestPrice + product.highestPrice) / 2 ? 'text-green-600' : 'text-red-600'}`}>
-                      {current_price < (product.lowestPrice + product.highestPrice) / 2 ? 'Below average' : 'Above average'}
-                    </span>
-                  </li>
-                  <li className="flex justify-between">
-                    <span>Price Volatility</span>
-                    <span className="font-medium">
-                      {(product.highestPrice - product.lowestPrice) / product.highestPrice > 0.2 ? 'High' : 'Low'}
-                    </span>
-                  </li>
-                  <li className="flex justify-between">
-                    <span>Buy Recommendation</span>
-                    <span className={`font-medium ${current_price - product.lowestPrice < (product.highestPrice - product.lowestPrice) * 0.2 ? 'text-green-600' : 'text-amber-600'}`}>
-                      {current_price - product.lowestPrice < (product.highestPrice - product.lowestPrice) * 0.2 ? 'Good time to buy' : 'Wait for a price drop'}
-                    </span>
-                  </li>
-                </ul>
-              </div>
-              
-              <div className="mt-6">
-                <Button className="w-full">
-                  <ShoppingCart className="mr-2" size={18} />
-                  Add to Cart
-                </Button>
-              </div>
+                </li>
+                <li className="flex justify-between">
+                  <span>Buy Recommendation</span>
+                  <span className={`font-medium ${current_price - product.lowestPrice < (product.highestPrice - product.lowestPrice) * 0.2 ? 'text-green-600' : 'text-amber-600'}`}>
+                    {current_price - product.lowestPrice < (product.highestPrice - product.lowestPrice) * 0.2 ? 'Good time to buy' : 'Wait for a price drop'}
+                  </span>
+                </li>
+              </ul>
             </div>
           </div>
         </div>

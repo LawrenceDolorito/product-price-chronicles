@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Search, PlusCircle, Filter, Loader2 } from "lucide-react";
+import { Search, Filter, Loader2 } from "lucide-react";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -82,14 +82,6 @@ const Dashboard = () => {
               Manage your product catalog and track prices
             </p>
           </div>
-          
-          <Button
-            onClick={() => navigate("/products")}
-            className="flex items-center gap-2"
-          >
-            <PlusCircle size={16} />
-            <span>View Product Table</span>
-          </Button>
         </div>
         
         <Card className="mb-8">
