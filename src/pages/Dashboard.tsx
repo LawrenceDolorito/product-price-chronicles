@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
 import ProductCard from "@/components/ProductCard";
+import ProductTable from "@/components/ProductTable";
 import { sampleProducts } from "@/data/sampleData";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -85,6 +86,13 @@ const Dashboard = () => {
           </div>
         </div>
         
+        {/* Display real product data from database */}
+        <div className="mb-12">
+          <h2 className="text-xl font-semibold mb-4">All Products</h2>
+          <ProductTable />
+        </div>
+        
+        <h2 className="text-xl font-semibold mb-4">Sample Products</h2>
         {filteredProducts.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProducts.map((product) => (
