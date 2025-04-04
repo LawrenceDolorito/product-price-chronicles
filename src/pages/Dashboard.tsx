@@ -1,35 +1,71 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
 import ProductCard from "@/components/ProductCard";
-import ProductTable from "@/components/ProductTable";
-import { sampleProducts } from "@/data/sampleData";
+import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Search, PlusCircle, Filter } from "lucide-react";
+import { Search, PlusCircle, Filter, Loader2 } from "lucide-react";
+
+type ProductWithPrice = {
+  prodcode: string;
+  description: string;
+  unit: string;
+  current_price: number | null;
+};
 
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [products, setProducts] = useState<ProductWithPrice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
-  // Get unique categories from products
-  const categories = Array.from(
-    new Set(sampleProducts.map((product) => product.category))
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        
+        const { data, error } = await supabase
+          .rpc('get_products_with_current_price') as {
+            data: ProductWithPrice[] | null;
+            error: Error | null;
+          };
+
+        if (error) {
+          throw error;
+        }
+
+        setProducts(data || []);
+      } catch (err) {
+        console.error("Error fetching products:", err);
+        setError("Failed to load products. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+  
+  // Get unique units from products for filtering
+  const units = Array.from(
+    new Set(products.map((product) => product.unit).filter(Boolean))
   );
   
   // Filter products based on search term and category
-  const filteredProducts = sampleProducts.filter((product) => {
-    const matchesSearch = product.name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
+  const filteredProducts = products.filter((product) => {
+    const matchesSearch = 
+      (product.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+      (product.prodcode.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory = categoryFilter === "all"
       ? true
-      : product.category === categoryFilter;
+      : product.unit === categoryFilter;
     return matchesSearch && matchesCategory;
   });
   
@@ -71,13 +107,13 @@ const Dashboard = () => {
             <div className="w-full md:w-48">
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                 <SelectTrigger>
-                  <SelectValue placeholder="All Categories" />
+                  <SelectValue placeholder="All Units" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {categories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
+                  <SelectItem value="all">All Units</SelectItem>
+                  {units.map((unit) => (
+                    <SelectItem key={unit} value={unit}>
+                      {unit}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -86,17 +122,38 @@ const Dashboard = () => {
           </div>
         </div>
         
-        {/* Display real product data from database */}
-        <div className="mb-12">
-          <h2 className="text-xl font-semibold mb-4">All Products</h2>
-          <ProductTable />
-        </div>
+        <h2 className="text-xl font-semibold mb-4">All Products</h2>
         
-        <h2 className="text-xl font-semibold mb-4">Sample Products</h2>
-        {filteredProducts.length > 0 ? (
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
+            <span>Loading products...</span>
+          </div>
+        ) : error ? (
+          <div className="p-4 bg-red-50 text-red-600 rounded-md">
+            <p>{error}</p>
+            <Button onClick={() => navigate(0)} className="mt-2">Retry</Button>
+          </div>
+        ) : filteredProducts.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard 
+                key={product.prodcode} 
+                product={{
+                  id: product.prodcode,
+                  name: product.description || 'Unnamed Product',
+                  description: `Unit: ${product.unit || 'N/A'}`,
+                  currentPrice: product.current_price || 0,
+                  currency: "$",
+                  imageUrl: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?q=80&w=2942&auto=format&fit=crop",
+                  category: product.unit || 'Uncategorized',
+                  priceHistory: [
+                    { date: new Date().toISOString().slice(0, 10), price: product.current_price || 0 }
+                  ],
+                  lowestPrice: product.current_price || 0,
+                  highestPrice: product.current_price || 0,
+                }} 
+              />
             ))}
           </div>
         ) : (
