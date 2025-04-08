@@ -247,12 +247,6 @@ const ProductDetail = () => {
                     {(product.highestPrice - product.lowestPrice) / product.highestPrice > 0.2 ? 'High' : 'Low'}
                   </span>
                 </li>
-                <li className="flex justify-between">
-                  <span>Buy Recommendation</span>
-                  <span className={`font-medium ${current_price - product.lowestPrice < (product.highestPrice - product.lowestPrice) * 0.2 ? 'text-green-600' : 'text-amber-600'}`}>
-                    {current_price - product.lowestPrice < (product.highestPrice - product.lowestPrice) * 0.2 ? 'Good time to buy' : 'Wait for a price drop'}
-                  </span>
-                </li>
               </ul>
             </div>
           </div>
