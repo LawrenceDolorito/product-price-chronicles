@@ -22,8 +22,13 @@ type ProductWithPrice = {
   current_price: number | null;
 };
 
-const ProductTable = () => {
+interface ProductTableProps {
+  searchQuery?: string;
+}
+
+const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
   const [products, setProducts] = useState<ProductWithPrice[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<ProductWithPrice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -46,6 +51,7 @@ const ProductTable = () => {
         }
 
         setProducts(data || []);
+        setFilteredProducts(data || []);
       } catch (err) {
         console.error("Error fetching products:", err);
         setError("Failed to load products. Please try again later.");
@@ -56,6 +62,23 @@ const ProductTable = () => {
 
     fetchProducts();
   }, []);
+
+  // Filter products based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredProducts(products);
+      return;
+    }
+    
+    const query = searchQuery.toLowerCase();
+    const filtered = products.filter(
+      (product) => 
+        product.prodcode.toLowerCase().includes(query) || 
+        (product.description && product.description.toLowerCase().includes(query))
+    );
+    
+    setFilteredProducts(filtered);
+  }, [searchQuery, products]);
 
   const handleEdit = (e: React.MouseEvent, prodcode: string) => {
     e.stopPropagation();
@@ -102,14 +125,14 @@ const ProductTable = () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {products.length === 0 ? (
+          {filteredProducts.length === 0 ? (
             <TableRow>
               <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
-                No products found
+                {searchQuery ? "No products found matching your search" : "No products found"}
               </TableCell>
             </TableRow>
           ) : (
-            products.map((product) => (
+            filteredProducts.map((product) => (
               <TableRow key={product.prodcode}>
                 <TableCell>{product.prodcode}</TableCell>
                 <TableCell>{product.description || "—"}</TableCell>
