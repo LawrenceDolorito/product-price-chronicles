@@ -3,7 +3,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Package, User, LogOut } from "lucide-react";
+import { Package, User, LogOut, BarChart2, Users } from "lucide-react";
 
 const Navbar: React.FC = () => {
   const { user, profile, logout } = useAuth();
@@ -47,7 +47,23 @@ const Navbar: React.FC = () => {
                 size="sm"
                 className="text-gray-600"
               >
-                Products Table
+                Products
+              </Button>
+              <Button
+                onClick={() => navigate("/reports")}
+                variant="ghost"
+                size="sm"
+                className="text-gray-600"
+              >
+                <BarChart2 size={18} className="mr-2" /> Reports
+              </Button>
+              <Button
+                onClick={() => navigate("/user-management")}
+                variant="ghost"
+                size="sm"
+                className="text-gray-600"
+              >
+                <Users size={18} className="mr-2" /> Users
               </Button>
               <Button
                 onClick={handleLogout}
