@@ -4,12 +4,11 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Search, Filter, Loader2 } from "lucide-react";
-import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Card, CardContent } from "@/components/ui/card";
+import { Loader2, Package, DollarSign, History, Users, Barcode } from "lucide-react";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 type ProductWithPrice = {
   prodcode: string;
@@ -18,174 +17,311 @@ type ProductWithPrice = {
   current_price: number | null;
 };
 
+type ProductCategory = {
+  unit: string;
+  count: number;
+  avgPrice: number;
+};
+
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("all");
   const [products, setProducts] = useState<ProductWithPrice[]>([]);
+  const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [recentPriceChanges, setRecentPriceChanges] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState({
+    totalProducts: 0,
+    avgPrice: 0,
+    categoriesCount: 0
+  });
   
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
         
-        const { data, error } = await supabase
+        // Fetch products with current price
+        const { data: productsData, error: productsError } = await supabase
           .rpc('get_products_with_current_price') as {
             data: ProductWithPrice[] | null;
             error: Error | null;
           };
 
-        if (error) {
-          throw error;
+        if (productsError) throw productsError;
+        
+        const products = productsData || [];
+        setProducts(products);
+        
+        // Calculate statistics
+        if (products.length > 0) {
+          // Total products
+          const totalProducts = products.length;
+          
+          // Average price
+          const productsWithPrice = products.filter(p => p.current_price !== null);
+          const avgPrice = productsWithPrice.length > 0 
+            ? productsWithPrice.reduce((sum, p) => sum + (p.current_price || 0), 0) / productsWithPrice.length
+            : 0;
+            
+          // Categories
+          const uniqueUnits = Array.from(new Set(products.map(p => p.unit).filter(Boolean)));
+          
+          // Prepare category data for chart
+          const categoryData = uniqueUnits.map(unit => {
+            const productsInCategory = products.filter(p => p.unit === unit);
+            const categoryAvgPrice = productsInCategory
+              .filter(p => p.current_price !== null)
+              .reduce((sum, p) => sum + (p.current_price || 0), 0) / 
+              productsInCategory.filter(p => p.current_price !== null).length || 0;
+              
+            return {
+              unit: unit || 'Unknown',
+              count: productsInCategory.length,
+              avgPrice: parseFloat(categoryAvgPrice.toFixed(2))
+            };
+          });
+          
+          setStats({
+            totalProducts,
+            avgPrice,
+            categoriesCount: uniqueUnits.length
+          });
+          
+          setCategories(categoryData);
         }
-
-        setProducts(data || []);
+        
+        // Fetch recent price changes (mock data for now)
+        setRecentPriceChanges([
+          { prodcode: 'P1001', description: 'Item 1', oldPrice: 10.99, newPrice: 12.99, date: '2025-04-08' },
+          { prodcode: 'P1002', description: 'Item 2', oldPrice: 25.50, newPrice: 22.99, date: '2025-04-07' },
+          { prodcode: 'P1003', description: 'Item 3', oldPrice: 5.99, newPrice: 7.50, date: '2025-04-05' },
+        ]);
       } catch (err) {
-        console.error("Error fetching products:", err);
-        setError("Failed to load products. Please try again later.");
+        console.error("Error fetching dashboard data:", err);
+        setError("Failed to load dashboard data. Please try again later.");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProducts();
+    fetchData();
   }, []);
   
-  // Get unique units from products for filtering
-  const units = Array.from(
-    new Set(products.map((product) => product.unit).filter(Boolean))
-  );
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <main className="container mx-auto px-4 py-8">
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
+            <span>Loading dashboard data...</span>
+          </div>
+        </main>
+      </div>
+    );
+  }
   
-  // Filter products based on search term and category
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch = 
-      (product.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
-      (product.prodcode.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesCategory = categoryFilter === "all"
-      ? true
-      : product.unit === categoryFilter;
-    return matchesSearch && matchesCategory;
-  });
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <main className="container mx-auto px-4 py-8">
+          <div className="p-4 bg-red-50 text-red-600 rounded-md">
+            <p>{error}</p>
+            <Button onClick={() => navigate(0)} className="mt-2">Retry</Button>
+          </div>
+        </main>
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       
       <main className="container mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Product Inventory</h1>
-            <p className="text-gray-600 mt-1">
-              Manage your product catalog and track prices
-            </p>
-          </div>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600 mt-1">
+            Overview of your product inventory and statistics
+          </p>
         </div>
         
-        <Card className="mb-8">
-          <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="relative flex-grow">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                <Input
-                  type="text"
-                  placeholder="Search products by code or description..."
-                  className="pl-10"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center text-lg">
+                <Package className="mr-2 h-5 w-5 text-primary" />
+                Total Products
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold">{stats.totalProducts}</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Across {stats.categoriesCount} categories
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center text-lg">
+                <DollarSign className="mr-2 h-5 w-5 text-primary" />
+                Average Price
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold">${stats.avgPrice.toFixed(2)}</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Based on products with pricing
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center text-lg">
+                <Barcode className="mr-2 h-5 w-5 text-primary" />
+                Categories
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold">{stats.categoriesCount}</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Distinct product units
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+        
+        {/* Category Chart */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <Card className="col-span-1 lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Products by Category</CardTitle>
+              <CardDescription>
+                Distribution of products across different units
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <ChartContainer
+                  config={{
+                    count: { label: "Product Count" },
+                    avgPrice: { label: "Avg Price ($)" },
+                  }}
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={categories}>
+                      <XAxis dataKey="unit" />
+                      <YAxis yAxisId="left" orientation="left" />
+                      <YAxis yAxisId="right" orientation="right" />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend />
+                      <Bar yAxisId="left" dataKey="count" name="Product Count" fill="#4f46e5" radius={[4, 4, 0, 0]} />
+                      <Bar yAxisId="right" dataKey="avgPrice" name="Avg Price ($)" fill="#10b981" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
               </div>
-              
-              <div className="w-full md:w-48">
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Units" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Units</SelectItem>
-                    {units.map((unit) => (
-                      <SelectItem key={unit} value={unit}>
-                        {unit}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            </CardContent>
+          </Card>
+          
+          <Card className="col-span-1">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <History className="mr-2 h-5 w-5" />
+                Recent Price Changes
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {recentPriceChanges.map((change, index) => (
+                  <div key={index} className="border-b pb-3 last:border-0 last:pb-0">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium">{change.description}</p>
+                        <p className="text-sm text-muted-foreground">{change.prodcode}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className={
+                          change.newPrice > change.oldPrice 
+                            ? "text-red-600 font-medium" 
+                            : "text-green-600 font-medium"
+                        }>
+                          {change.newPrice > change.oldPrice ? "↑" : "↓"} ${change.newPrice.toFixed(2)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          was ${change.oldPrice.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">{change.date}</p>
+                  </div>
+                ))}
               </div>
+              <Button 
+                variant="outline" 
+                className="w-full mt-4"
+                onClick={() => navigate("/reports")}
+              >
+                View All Price History
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+        
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Button 
+                className="flex items-center justify-center" 
+                onClick={() => navigate("/products")}
+              >
+                <Package className="mr-2 h-5 w-5" />
+                View Products
+              </Button>
+              <Button 
+                className="flex items-center justify-center" 
+                onClick={() => navigate("/reports")}
+              >
+                <History className="mr-2 h-5 w-5" />
+                Generate Reports
+              </Button>
+              <Button 
+                className="flex items-center justify-center" 
+                onClick={() => navigate("/user-management")}
+              >
+                <Users className="mr-2 h-5 w-5" />
+                User Management
+              </Button>
             </div>
           </CardContent>
         </Card>
-        
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
-            <span>Loading products...</span>
-          </div>
-        ) : error ? (
-          <div className="p-4 bg-red-50 text-red-600 rounded-md">
-            <p>{error}</p>
-            <Button onClick={() => navigate(0)} className="mt-2">Retry</Button>
-          </div>
-        ) : (
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-            <Table>
-              <TableCaption>
-                {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} found
-              </TableCaption>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Product Code</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Unit</TableHead>
-                  <TableHead className="text-right">Current Price</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredProducts.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
-                      <Filter className="mx-auto h-12 w-12 text-gray-400 mb-2" />
-                      <p className="text-lg font-medium text-gray-900">No products found</p>
-                      <p className="mt-1 text-gray-500">
-                        Try adjusting your search or filter to find what you're looking for.
-                      </p>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredProducts.map((product) => (
-                    <TableRow key={product.prodcode} className="cursor-pointer hover:bg-gray-50" onClick={() => navigate(`/product/${product.prodcode}`)}>
-                      <TableCell className="font-medium">{product.prodcode}</TableCell>
-                      <TableCell>{product.description || "—"}</TableCell>
-                      <TableCell>{product.unit || "—"}</TableCell>
-                      <TableCell className="text-right">
-                        {product.current_price !== null
-                          ? `$${product.current_price.toFixed(2)}`
-                          : "—"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/product/${product.prodcode}`);
-                          }}
-                        >
-                          View
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        )}
       </main>
     </div>
   );
+};
+
+// Custom tooltip for the chart
+const CustomTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-3 border rounded-md shadow-md">
+        <p className="font-medium">{`${payload[0].payload.unit}`}</p>
+        <p className="text-sm">{`Products: ${payload[0].value}`}</p>
+        <p className="text-sm">{`Avg Price: $${payload[1].value}`}</p>
+      </div>
+    );
+  }
+  return null;
 };
 
 export default Dashboard;
