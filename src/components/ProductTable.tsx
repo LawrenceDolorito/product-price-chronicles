@@ -12,8 +12,9 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Pencil, Trash2 } from "lucide-react";
+import { Loader2, Pencil, Trash2, History } from "lucide-react";
 import { toast } from "sonner";
+import PriceHistoryDialog from "./PriceHistoryDialog";
 
 type ProductWithPrice = {
   prodcode: string;
@@ -32,6 +33,8 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
+  const [isPriceHistoryOpen, setIsPriceHistoryOpen] = useState(false);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -83,14 +86,28 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
   const handleEdit = (e: React.MouseEvent, prodcode: string) => {
     e.stopPropagation();
     navigate(`/product/${prodcode}`);
-    // In a real app, you might want to navigate to an edit form
-    // navigate(`/products/edit/${prodcode}`);
   };
 
   const handleDelete = (e: React.MouseEvent, prodcode: string) => {
     e.stopPropagation();
     // This is just a placeholder - in a real app you would delete the product
     toast.info(`Delete functionality would remove product: ${prodcode}`);
+  };
+
+  const handleRowClick = (prodcode: string) => {
+    setSelectedProduct(prodcode);
+    setIsPriceHistoryOpen(true);
+  };
+
+  const handlePriceHistoryClose = () => {
+    setIsPriceHistoryOpen(false);
+    setSelectedProduct(null);
+  };
+
+  const handleShowPriceHistory = (e: React.MouseEvent, prodcode: string) => {
+    e.stopPropagation();
+    setSelectedProduct(prodcode);
+    setIsPriceHistoryOpen(true);
   };
 
   if (loading) {
@@ -112,61 +129,81 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
   }
 
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableCaption>List of all products with current prices</TableCaption>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Product Code</TableHead>
-            <TableHead>Description</TableHead>
-            <TableHead>Unit</TableHead>
-            <TableHead className="text-right">Current Price</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredProducts.length === 0 ? (
+    <>
+      <div className="rounded-md border">
+        <Table>
+          <TableCaption>List of all products with current prices</TableCaption>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
-                {searchQuery ? "No products found matching your search" : "No products found"}
-              </TableCell>
+              <TableHead>Product Code</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead>Unit</TableHead>
+              <TableHead className="text-right">Current Price</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
-          ) : (
-            filteredProducts.map((product) => (
-              <TableRow key={product.prodcode}>
-                <TableCell>{product.prodcode}</TableCell>
-                <TableCell>{product.description || "—"}</TableCell>
-                <TableCell>{product.unit || "—"}</TableCell>
-                <TableCell className="text-right">
-                  {product.current_price !== null
-                    ? `$${product.current_price.toFixed(2)}`
-                    : "—"}
-                </TableCell>
-                <TableCell className="text-right flex justify-end gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={(e) => handleEdit(e, product.prodcode)}
-                  >
-                    <Pencil size={16} />
-                    <span className="hidden sm:inline ml-1">Edit</span>
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="text-red-500 hover:text-red-700"
-                    onClick={(e) => handleDelete(e, product.prodcode)}
-                  >
-                    <Trash2 size={16} />
-                    <span className="hidden sm:inline ml-1">Delete</span>
-                  </Button>
+          </TableHeader>
+          <TableBody>
+            {filteredProducts.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
+                  {searchQuery ? "No products found matching your search" : "No products found"}
                 </TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
+            ) : (
+              filteredProducts.map((product) => (
+                <TableRow 
+                  key={product.prodcode} 
+                  className="cursor-pointer hover:bg-gray-50"
+                  onClick={() => handleRowClick(product.prodcode)}
+                >
+                  <TableCell>{product.prodcode}</TableCell>
+                  <TableCell>{product.description || "—"}</TableCell>
+                  <TableCell>{product.unit || "—"}</TableCell>
+                  <TableCell className="text-right">
+                    {product.current_price !== null
+                      ? `$${product.current_price.toFixed(2)}`
+                      : "—"}
+                  </TableCell>
+                  <TableCell className="text-right flex justify-end gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={(e) => handleShowPriceHistory(e, product.prodcode)}
+                    >
+                      <History size={16} />
+                      <span className="hidden sm:inline ml-1">Price History</span>
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={(e) => handleEdit(e, product.prodcode)}
+                    >
+                      <Pencil size={16} />
+                      <span className="hidden sm:inline ml-1">Edit</span>
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="text-red-500 hover:text-red-700"
+                      onClick={(e) => handleDelete(e, product.prodcode)}
+                    >
+                      <Trash2 size={16} />
+                      <span className="hidden sm:inline ml-1">Delete</span>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      <PriceHistoryDialog 
+        isOpen={isPriceHistoryOpen}
+        onClose={handlePriceHistoryClose}
+        productCode={selectedProduct}
+      />
+    </>
   );
 };
 
