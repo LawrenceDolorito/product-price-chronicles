@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Loader2, Package, DollarSign, History, Users, Barcode } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from 'recharts';
 
 type ProductWithPrice = {
   prodcode: string;
@@ -23,12 +23,20 @@ type ProductCategory = {
   avgPrice: number;
 };
 
+type PriceChange = {
+  prodcode: string;
+  description: string;
+  oldPrice: number;
+  newPrice: number;
+  date: string;
+};
+
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [products, setProducts] = useState<ProductWithPrice[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
-  const [recentPriceChanges, setRecentPriceChanges] = useState<any[]>([]);
+  const [recentPriceChanges, setRecentPriceChanges] = useState<PriceChange[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({
@@ -92,11 +100,38 @@ const Dashboard = () => {
           setCategories(categoryData);
         }
         
-        // Fetch recent price changes (mock data for now)
+        // Fetch recent price changes - normally would come from the database
+        // Using more realistic mock data for now
+        const currentDate = new Date();
         setRecentPriceChanges([
-          { prodcode: 'P1001', description: 'Item 1', oldPrice: 10.99, newPrice: 12.99, date: '2025-04-08' },
-          { prodcode: 'P1002', description: 'Item 2', oldPrice: 25.50, newPrice: 22.99, date: '2025-04-07' },
-          { prodcode: 'P1003', description: 'Item 3', oldPrice: 5.99, newPrice: 7.50, date: '2025-04-05' },
+          { 
+            prodcode: 'P1001', 
+            description: 'Organic Apples', 
+            oldPrice: 10.99, 
+            newPrice: 12.99, 
+            date: new Date(currentDate.setDate(currentDate.getDate() - 1)).toISOString().split('T')[0] 
+          },
+          { 
+            prodcode: 'P1002', 
+            description: 'Free Range Eggs', 
+            oldPrice: 25.50, 
+            newPrice: 22.99, 
+            date: new Date(currentDate.setDate(currentDate.getDate() - 2)).toISOString().split('T')[0] 
+          },
+          { 
+            prodcode: 'P1003', 
+            description: 'Whole Grain Bread', 
+            oldPrice: 5.99, 
+            newPrice: 7.50, 
+            date: new Date(currentDate.setDate(currentDate.getDate() - 3)).toISOString().split('T')[0] 
+          },
+          { 
+            prodcode: 'P1004', 
+            description: 'Organic Milk', 
+            oldPrice: 8.75, 
+            newPrice: 9.25, 
+            date: new Date(currentDate.setDate(currentDate.getDate() - 4)).toISOString().split('T')[0] 
+          },
         ]);
       } catch (err) {
         console.error("Error fetching dashboard data:", err);
@@ -197,7 +232,7 @@ const Dashboard = () => {
           </Card>
         </div>
         
-        {/* Category Chart */}
+        {/* Category Chart and Recent Price Changes */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           <Card className="col-span-1 lg:col-span-2">
             <CardHeader>
@@ -214,17 +249,21 @@ const Dashboard = () => {
                     avgPrice: { label: "Avg Price ($)" },
                   }}
                 >
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={categories}>
-                      <XAxis dataKey="unit" />
-                      <YAxis yAxisId="left" orientation="left" />
-                      <YAxis yAxisId="right" orientation="right" />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend />
-                      <Bar yAxisId="left" dataKey="count" name="Product Count" fill="#4f46e5" radius={[4, 4, 0, 0]} />
-                      <Bar yAxisId="right" dataKey="avgPrice" name="Avg Price ($)" fill="#10b981" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  <BarChart 
+                    width={500} 
+                    height={300} 
+                    data={categories}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="unit" />
+                    <YAxis yAxisId="left" orientation="left" />
+                    <YAxis yAxisId="right" orientation="right" />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend />
+                    <Bar yAxisId="left" dataKey="count" name="Product Count" fill="#4f46e5" radius={[4, 4, 0, 0]} />
+                    <Bar yAxisId="right" dataKey="avgPrice" name="Avg Price ($)" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  </BarChart>
                 </ChartContainer>
               </div>
             </CardContent>
@@ -273,38 +312,6 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
-        
-        {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Button 
-                className="flex items-center justify-center" 
-                onClick={() => navigate("/products")}
-              >
-                <Package className="mr-2 h-5 w-5" />
-                View Products
-              </Button>
-              <Button 
-                className="flex items-center justify-center" 
-                onClick={() => navigate("/reports")}
-              >
-                <History className="mr-2 h-5 w-5" />
-                Generate Reports
-              </Button>
-              <Button 
-                className="flex items-center justify-center" 
-                onClick={() => navigate("/user-management")}
-              >
-                <Users className="mr-2 h-5 w-5" />
-                User Management
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
       </main>
     </div>
   );
