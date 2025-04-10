@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Loader2, Package, DollarSign, History, Users, Barcode } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid, ResponsiveContainer } from 'recharts';
 
 type ProductWithPrice = {
   prodcode: string;
@@ -287,33 +287,36 @@ const Dashboard = () => {
                 Distribution of products across different units
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="h-80 w-full">
-                <ChartContainer
-                  config={{
-                    count: { label: "Product Count" },
-                    avgPrice: { label: "Avg Price ($)" },
-                  }}
-                >
-                  <div className="w-full h-full">
-                    <BarChart 
-                      width={500} 
-                      height={300} 
-                      data={categories}
-                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="unit" />
-                      <YAxis yAxisId="left" orientation="left" />
-                      <YAxis yAxisId="right" orientation="right" />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend />
-                      <Bar yAxisId="left" dataKey="count" name="Product Count" fill="#4f46e5" radius={[4, 4, 0, 0]} />
-                      <Bar yAxisId="right" dataKey="avgPrice" name="Avg Price ($)" fill="#10b981" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </div>
-                </ChartContainer>
-              </div>
+            <CardContent className="h-[400px]">
+              <ChartContainer
+                config={{
+                  count: { label: "Product Count" },
+                  avgPrice: { label: "Avg Price ($)" },
+                }}
+                className="w-full h-full"
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart 
+                    data={categories}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="unit" 
+                      angle={-45} 
+                      textAnchor="end" 
+                      height={70} 
+                      tick={{ fontSize: 12 }}
+                    />
+                    <YAxis yAxisId="left" orientation="left" />
+                    <YAxis yAxisId="right" orientation="right" />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend wrapperStyle={{ paddingTop: 20 }} />
+                    <Bar yAxisId="left" dataKey="count" name="Product Count" fill="#4f46e5" radius={[4, 4, 0, 0]} />
+                    <Bar yAxisId="right" dataKey="avgPrice" name="Avg Price ($)" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
             </CardContent>
           </Card>
           
