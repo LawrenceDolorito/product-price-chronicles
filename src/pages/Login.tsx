@@ -17,6 +17,7 @@ const Login = () => {
   // Login form state
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
+  const [loginAttempt, setLoginAttempt] = useState(false);
   
   // Signup form state
   const [firstName, setFirstName] = useState("");
@@ -24,6 +25,7 @@ const Login = () => {
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
+  const [signupAttempt, setSignupAttempt] = useState(false);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -34,28 +36,47 @@ const Login = () => {
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = await login(loginEmail, loginPassword);
-    if (success) {
-      navigate("/dashboard");
+    setLoginAttempt(true);
+    
+    try {
+      const success = await login(loginEmail, loginPassword);
+      if (success) {
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      toast.error("Login failed. Please check your credentials and try again.");
+    } finally {
+      setLoginAttempt(false);
     }
   };
   
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSignupAttempt(true);
     
-    if (signupPassword !== signupConfirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
-    
-    const success = await signup(signupEmail, signupPassword, firstName, lastName);
-    if (success) {
-      // Reset form after successful signup
-      setSignupEmail("");
-      setSignupPassword("");
-      setSignupConfirmPassword("");
-      setFirstName("");
-      setLastName("");
+    try {
+      if (signupPassword !== signupConfirmPassword) {
+        toast.error("Passwords do not match");
+        setSignupAttempt(false);
+        return;
+      }
+      
+      const success = await signup(signupEmail, signupPassword, firstName, lastName);
+      if (success) {
+        // Reset form after successful signup
+        setSignupEmail("");
+        setSignupPassword("");
+        setSignupConfirmPassword("");
+        setFirstName("");
+        setLastName("");
+        toast.success("Account created! You can now log in.");
+      }
+    } catch (error) {
+      console.error("Signup error:", error);
+      toast.error("Registration failed. Please try again later.");
+    } finally {
+      setSignupAttempt(false);
     }
   };
   
@@ -107,6 +128,7 @@ const Login = () => {
                         onChange={(e) => setLoginEmail(e.target.value)}
                         className="pl-10"
                         required
+                        disabled={isLoading || loginAttempt}
                       />
                     </div>
                   </div>
@@ -123,12 +145,24 @@ const Login = () => {
                         onChange={(e) => setLoginPassword(e.target.value)}
                         className="pl-10"
                         required
+                        disabled={isLoading || loginAttempt}
                       />
                     </div>
                   </div>
                   
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? "Logging in..." : "Login"}
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    disabled={isLoading || loginAttempt}
+                  >
+                    {(isLoading || loginAttempt) ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Logging in...
+                      </>
+                    ) : (
+                      "Login"
+                    )}
                   </Button>
                   
                   <div className="text-sm text-center text-gray-500">
@@ -137,6 +171,7 @@ const Login = () => {
                       type="button"
                       onClick={switchToSignup}
                       className="text-primary hover:underline focus:outline-none"
+                      disabled={isLoading || loginAttempt}
                     >
                       Sign up
                     </button>
@@ -159,6 +194,7 @@ const Login = () => {
                           onChange={(e) => setFirstName(e.target.value)}
                           className="pl-10"
                           required
+                          disabled={isLoading || signupAttempt}
                         />
                       </div>
                     </div>
@@ -172,6 +208,7 @@ const Login = () => {
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
                         required
+                        disabled={isLoading || signupAttempt}
                       />
                     </div>
                   </div>
@@ -188,6 +225,7 @@ const Login = () => {
                         onChange={(e) => setSignupEmail(e.target.value)}
                         className="pl-10"
                         required
+                        disabled={isLoading || signupAttempt}
                       />
                     </div>
                   </div>
@@ -204,6 +242,7 @@ const Login = () => {
                         onChange={(e) => setSignupPassword(e.target.value)}
                         className="pl-10"
                         required
+                        disabled={isLoading || signupAttempt}
                       />
                     </div>
                   </div>
@@ -220,12 +259,24 @@ const Login = () => {
                         onChange={(e) => setSignupConfirmPassword(e.target.value)}
                         className="pl-10"
                         required
+                        disabled={isLoading || signupAttempt}
                       />
                     </div>
                   </div>
                   
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? "Creating Account..." : "Create Account"}
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    disabled={isLoading || signupAttempt}
+                  >
+                    {(isLoading || signupAttempt) ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating Account...
+                      </>
+                    ) : (
+                      "Create Account"
+                    )}
                   </Button>
                   
                   <div className="text-sm text-center text-gray-500">
@@ -234,6 +285,7 @@ const Login = () => {
                       type="button"
                       onClick={switchToLogin}
                       className="text-primary hover:underline focus:outline-none"
+                      disabled={isLoading || signupAttempt}
                     >
                       Log in
                     </button>

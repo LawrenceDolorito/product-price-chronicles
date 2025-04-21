@@ -40,6 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsAuthenticated(!!session?.user);
         
         if (session?.user) {
+          // Use setTimeout to avoid potential deadlocks with Supabase auth
           setTimeout(() => {
             fetchUserProfile(session.user.id);
           }, 0);
@@ -103,6 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       if (error) {
+        console.error("Login error:", error);
         toast.error(error.message);
         return false;
       }
@@ -145,6 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       if (error) {
+        console.error("Signup error:", error);
         toast.error(error.message);
         return false;
       }
@@ -169,6 +172,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { error } = await supabase.auth.signOut();
       
       if (error) {
+        console.error("Logout error:", error);
         throw error;
       }
       
