@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, Plus, Pencil, Trash2 } from "lucide-react";
+import { CalendarIcon, Plus, Pencil, Trash2, Loader2, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -78,6 +78,7 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [currentItem, setCurrentItem] = useState<PriceHistoryItem | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -100,16 +101,26 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
 
     try {
       setIsLoading(true);
+      setError(null);
+      
+      console.log("Fetching product info for:", productCode);
+      
       const { data, error } = await supabase
         .from("product")
         .select("prodcode, description, unit")
         .eq("prodcode", productCode)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching product info:", error);
+        throw error;
+      }
+      
+      console.log("Product info fetched:", data);
       setProductInfo(data);
     } catch (error) {
       console.error("Error fetching product info:", error);
+      setError("Failed to fetch product information");
       toast.error("Failed to fetch product information");
     } finally {
       setIsLoading(false);
@@ -121,16 +132,26 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
 
     try {
       setIsLoading(true);
+      setError(null);
+      
+      console.log("Fetching price history for:", productCode);
+      
       const { data, error } = await supabase
         .from("pricehist")
         .select("prodcode, effdate, unitprice")
         .eq("prodcode", productCode)
         .order("effdate", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching price history:", error);
+        throw error;
+      }
+      
+      console.log("Price history fetched:", data);
       setPriceHistory(data || []);
     } catch (error) {
       console.error("Error fetching price history:", error);
+      setError("Failed to fetch price history");
       toast.error("Failed to fetch price history");
     } finally {
       setIsLoading(false);
@@ -224,8 +245,35 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
     setIsFormOpen(false);
   };
 
-  if (!productInfo) {
-    return null;
+  // If loading, show a loading state
+  if (isLoading && !productInfo && isOpen) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-4xl">
+          <div className="flex justify-center items-center h-40">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-2">Loading product information...</span>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // If there's an error, show an error state
+  if (error && isOpen) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-4xl">
+          <div className="flex flex-col items-center justify-center h-40">
+            <AlertCircle className="h-8 w-8 text-red-500 mb-2" />
+            <p className="text-red-500 font-semibold">{error}</p>
+            <Button onClick={() => { fetchProductInfo(); fetchPriceHistory(); }} className="mt-4">
+              Retry
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
   }
 
   return (
@@ -233,23 +281,25 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Price History Dialog Box</DialogTitle>
+            <DialogTitle>Price History</DialogTitle>
           </DialogHeader>
           
-          <div className="grid grid-cols-3 gap-4 mb-4">
-            <div>
-              <span className="font-medium">Product Code</span>
-              <p>{productInfo.prodcode}</p>
+          {productInfo && (
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div>
+                <span className="font-medium">Product Code</span>
+                <p>{productInfo.prodcode}</p>
+              </div>
+              <div>
+                <span className="font-medium">Description</span>
+                <p>{productInfo.description || "—"}</p>
+              </div>
+              <div>
+                <span className="font-medium">Unit</span>
+                <p>{productInfo.unit || "—"}</p>
+              </div>
             </div>
-            <div>
-              <span className="font-medium">Description</span>
-              <p>{productInfo.description || "—"}</p>
-            </div>
-            <div>
-              <span className="font-medium">Unit</span>
-              <p>{productInfo.unit || "—"}</p>
-            </div>
-          </div>
+          )}
           
           <div className="rounded-md border">
             <Table>
@@ -270,7 +320,7 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
                 ) : (
                   priceHistory.map((item) => (
                     <TableRow key={item.effdate}>
-                      <TableCell>{format(new Date(item.effdate), "yyyy-MMM-dd")}</TableCell>
+                      <TableCell>{format(new Date(item.effdate), "yyyy-MM-dd")}</TableCell>
                       <TableCell>${item.unitprice.toFixed(2)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">

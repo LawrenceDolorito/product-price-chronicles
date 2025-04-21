@@ -17,6 +17,13 @@ export const supabase = createClient<Database>(
       persistSession: true,
       autoRefreshToken: true,
       storageKey: 'supabase-auth',
-    }
+    },
+    db: {
+      schema: 'public',
+    },
+    global: {
+      fetch: fetch,
+      headers: { 'x-application-name': 'product-manager' },
+    },
   }
 );

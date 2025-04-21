@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Pencil, Trash2, History } from "lucide-react";
+import { Loader2, Pencil, Trash2, History, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import PriceHistoryDialog from "./PriceHistoryDialog";
 
@@ -41,18 +41,19 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
       try {
         setLoading(true);
         
+        console.log("Fetching products from Supabase...");
+        
         // This query gets all products with their latest price from pricehist
-        // Use type assertion to work around the TypeScript error
         const { data, error } = await supabase
-          .rpc('get_products_with_current_price') as {
-            data: ProductWithPrice[] | null;
-            error: Error | null;
-          };
+          .rpc('get_products_with_current_price');
 
         if (error) {
+          console.error("Error fetching products:", error);
           throw error;
         }
 
+        console.log("Products fetched:", data);
+        
         setProducts(data || []);
         setFilteredProducts(data || []);
       } catch (err) {
@@ -122,7 +123,9 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
   if (error) {
     return (
       <div className="p-4 bg-red-50 text-red-600 rounded-md">
-        <p>{error}</p>
+        <AlertCircle className="h-6 w-6 mb-2" />
+        <p className="font-semibold">Error loading products</p>
+        <p className="text-sm">{error}</p>
         <Button onClick={() => navigate(0)} className="mt-2">Retry</Button>
       </div>
     );
