@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, Plus, Pencil, Trash2, Loader2, AlertCircle } from "lucide-react";
+import { CalendarIcon, Plus, Pencil, Trash2, Loader2, AlertCircle, Database } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -79,6 +79,7 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
   const [currentItem, setCurrentItem] = useState<PriceHistoryItem | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [connectionError, setConnectionError] = useState<boolean>(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -88,13 +89,47 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
     },
   });
 
+  // Test database connection when the dialog opens
+  useEffect(() => {
+    const testConnection = async () => {
+      if (!isOpen) return;
+      
+      try {
+        setIsLoading(true);
+        setConnectionError(false);
+        
+        // Test product table access
+        const { error: productError } = await supabase
+          .from('product')
+          .select('count(*)', { count: 'exact', head: true });
+          
+        // Test pricehist table access  
+        const { error: priceHistError } = await supabase
+          .from('pricehist')
+          .select('count(*)', { count: 'exact', head: true });
+          
+        if (productError || priceHistError) {
+          console.error("Database connection error:", productError || priceHistError);
+          setConnectionError(true);
+        }
+      } catch (err) {
+        console.error("Error testing database connection:", err);
+        setConnectionError(true);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    testConnection();
+  }, [isOpen]);
+
   // Fetch product information and price history
   useEffect(() => {
-    if (isOpen && productCode) {
+    if (isOpen && productCode && !connectionError) {
       fetchProductInfo();
       fetchPriceHistory();
     }
-  }, [isOpen, productCode]);
+  }, [isOpen, productCode, connectionError]);
 
   const fetchProductInfo = async () => {
     if (!productCode) return;
@@ -148,6 +183,11 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
       }
       
       console.log("Price history fetched:", data);
+      
+      if (!data || data.length === 0) {
+        console.log("No price history found for product:", productCode);
+      }
+      
       setPriceHistory(data || []);
     } catch (error) {
       console.error("Error fetching price history:", error);
@@ -245,6 +285,73 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
     setIsFormOpen(false);
   };
 
+  const addSamplePriceHistory = async () => {
+    if (!productCode) return;
+    
+    try {
+      setIsLoading(true);
+      
+      // Create sample price history entries
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const lastWeek = new Date(today);
+      lastWeek.setDate(lastWeek.getDate() - 7);
+      
+      const currentPrice = 99.99; // Example base price
+      
+      const { error } = await supabase
+        .from("pricehist")
+        .insert([
+          {
+            prodcode: productCode,
+            effdate: today.toISOString().split('T')[0],
+            unitprice: currentPrice
+          },
+          {
+            prodcode: productCode,
+            effdate: yesterday.toISOString().split('T')[0],
+            unitprice: currentPrice * 0.95 // 5% lower yesterday
+          },
+          {
+            prodcode: productCode,
+            effdate: lastWeek.toISOString().split('T')[0],
+            unitprice: currentPrice * 0.9 // 10% lower last week
+          }
+        ]);
+        
+      if (error) throw error;
+      
+      toast.success("Sample price history added successfully");
+      await fetchPriceHistory();
+    } catch (error) {
+      console.error("Error adding sample price history:", error);
+      toast.error("Failed to add sample price history");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // If there's a connection error, show a connection error state
+  if (connectionError && isOpen) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-4xl">
+          <div className="flex flex-col items-center justify-center h-40">
+            <AlertCircle className="h-8 w-8 text-red-500 mb-2" />
+            <p className="text-red-500 font-semibold">Could not connect to the database</p>
+            <p className="text-gray-600 mt-2 text-center">
+              There was an issue connecting to the Supabase database. Please check your connection and try again.
+            </p>
+            <Button onClick={onClose} className="mt-4">
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   // If loading, show a loading state
   if (isLoading && !productInfo && isOpen) {
     return (
@@ -315,6 +422,17 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
                   <TableRow>
                     <TableCell colSpan={3} className="h-24 text-center">
                       No price history found
+                      <div className="flex justify-center mt-4">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={addSamplePriceHistory}
+                          className="mx-auto"
+                        >
+                          <Database size={16} className="mr-2" />
+                          Add Sample Price History
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (

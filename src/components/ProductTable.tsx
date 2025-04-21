@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, checkDatabaseConnection } from "@/integrations/supabase/client";
 import {
   Table,
   TableBody,
@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Pencil, Trash2, History, AlertCircle } from "lucide-react";
+import { Loader2, Pencil, Trash2, History, AlertCircle, Database } from "lucide-react";
 import { toast } from "sonner";
 import PriceHistoryDialog from "./PriceHistoryDialog";
 
@@ -32,9 +32,29 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
   const [filteredProducts, setFilteredProducts] = useState<ProductWithPrice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<boolean | null>(null);
   const navigate = useNavigate();
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const [isPriceHistoryOpen, setIsPriceHistoryOpen] = useState(false);
+
+  useEffect(() => {
+    const checkConnection = async () => {
+      try {
+        const { connected, error } = await checkDatabaseConnection();
+        setConnectionStatus(connected);
+        if (!connected) {
+          console.error("Database connection failed:", error);
+          setError("Cannot connect to the database. Please check your connection.");
+        }
+      } catch (err) {
+        console.error("Connection check error:", err);
+        setConnectionStatus(false);
+        setError("Failed to check database connection");
+      }
+    };
+
+    checkConnection();
+  }, []);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -43,7 +63,14 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
         
         console.log("Fetching products from Supabase...");
         
-        // This query gets all products with their latest price from pricehist
+        // Direct query to products and pricehist to diagnose issues
+        const productQuery = await supabase.from('product').select('*');
+        console.log("Raw products query result:", productQuery);
+
+        const priceHistQuery = await supabase.from('pricehist').select('*');
+        console.log("Raw price history query result:", priceHistQuery);
+        
+        // Now try the function
         const { data, error } = await supabase
           .rpc('get_products_with_current_price');
 
@@ -53,6 +80,12 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
         }
 
         console.log("Products fetched:", data);
+        
+        // If data is empty, show a notice but don't treat as error
+        if (!data || data.length === 0) {
+          console.log("No products found in database");
+          toast.info("No products found in the database. You might need to add some products first.");
+        }
         
         setProducts(data || []);
         setFilteredProducts(data || []);
@@ -64,8 +97,10 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
       }
     };
 
-    fetchProducts();
-  }, []);
+    if (connectionStatus) {
+      fetchProducts();
+    }
+  }, [connectionStatus]);
 
   // Filter products based on search query
   useEffect(() => {
@@ -111,6 +146,67 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
     setIsPriceHistoryOpen(true);
   };
 
+  const handleAddDummyData = async () => {
+    try {
+      setLoading(true);
+      
+      // Add some sample product data
+      const { error: productError } = await supabase
+        .from('product')
+        .insert([
+          { prodcode: 'PROD001', description: 'Office Chair', unit: 'each' },
+          { prodcode: 'PROD002', description: 'Desk Lamp', unit: 'each' },
+          { prodcode: 'PROD003', description: 'Notebook', unit: 'dozen' }
+        ]);
+        
+      if (productError) throw productError;
+      
+      // Add price history for these products
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      const { error: priceError } = await supabase
+        .from('pricehist')
+        .insert([
+          { prodcode: 'PROD001', effdate: today.toISOString().split('T')[0], unitprice: 149.99 },
+          { prodcode: 'PROD002', effdate: today.toISOString().split('T')[0], unitprice: 35.50 },
+          { prodcode: 'PROD003', effdate: today.toISOString().split('T')[0], unitprice: 12.99 },
+          { prodcode: 'PROD001', effdate: yesterday.toISOString().split('T')[0], unitprice: 159.99 },
+          { prodcode: 'PROD002', effdate: yesterday.toISOString().split('T')[0], unitprice: 32.75 }
+        ]);
+        
+      if (priceError) throw priceError;
+      
+      toast.success("Sample data added successfully!");
+      
+      // Refresh the product list
+      const { data, error } = await supabase.rpc('get_products_with_current_price');
+      
+      if (error) throw error;
+      
+      setProducts(data || []);
+      setFilteredProducts(data || []);
+      
+    } catch (err) {
+      console.error("Error adding sample data:", err);
+      toast.error("Failed to add sample data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (connectionStatus === false) {
+    return (
+      <div className="p-4 bg-red-50 text-red-600 rounded-md">
+        <AlertCircle className="h-6 w-6 mb-2" />
+        <p className="font-semibold">Database connection error</p>
+        <p className="text-sm">Cannot connect to the Supabase database</p>
+        <Button onClick={() => navigate(0)} className="mt-2">Retry</Button>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -133,6 +229,17 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
 
   return (
     <>
+      <div className="mb-4 flex justify-between items-center">
+        <h2 className="text-xl font-semibold">Products</h2>
+        
+        {products.length === 0 && (
+          <Button onClick={handleAddDummyData} disabled={loading}>
+            <Database className="mr-2 h-4 w-4" />
+            Add Sample Data
+          </Button>
+        )}
+      </div>
+
       <div className="rounded-md border">
         <Table>
           <TableCaption>List of all products with current prices</TableCaption>
@@ -149,7 +256,9 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
             {filteredProducts.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
-                  {searchQuery ? "No products found matching your search" : "No products found"}
+                  {searchQuery ? 
+                    "No products found matching your search" : 
+                    "No products found in the database. Use the 'Add Sample Data' button to add some example products."}
                 </TableCell>
               </TableRow>
             ) : (

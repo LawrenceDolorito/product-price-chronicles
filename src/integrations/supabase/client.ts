@@ -25,5 +25,30 @@ export const supabase = createClient<Database>(
       fetch: fetch,
       headers: { 'x-application-name': 'product-manager' },
     },
+    realtime: {
+      params: {
+        eventsPerSecond: 10,
+      },
+    },
   }
 );
+
+// Helper function to check database connection
+export const checkDatabaseConnection = async () => {
+  try {
+    // Simple query to test connection
+    const { data, error } = await supabase
+      .from('product')
+      .select('count(*)', { count: 'exact', head: true });
+    
+    if (error) {
+      console.error('Database connection error:', error);
+      return { connected: false, error };
+    }
+    
+    return { connected: true, data };
+  } catch (err) {
+    console.error('Unexpected error checking database:', err);
+    return { connected: false, error: err };
+  }
+};
