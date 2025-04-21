@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -7,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, UserPlus, Mail, Lock, User2, AlertCircle } from "lucide-react";
+import { User, UserPlus, Mail, Lock, User2, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 const Login = () => {
