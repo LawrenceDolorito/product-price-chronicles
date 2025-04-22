@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { supabase, checkDatabaseConnection } from "@/integrations/supabase/client";
 import {
@@ -40,7 +39,9 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
   useEffect(() => {
     const checkConnection = async () => {
       try {
+        console.log("Checking database connection...");
         const { connected, error } = await checkDatabaseConnection();
+        console.log("Connection check result:", connected);
         setConnectionStatus(connected);
         if (!connected) {
           console.error("Database connection failed:", error);
@@ -63,19 +64,38 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
         
         console.log("Fetching products from Supabase...");
         
-        // Direct query to products and pricehist to diagnose issues
+        // Try direct queries to diagnose issues
+        console.log("Testing direct table access...");
         const productQuery = await supabase.from('product').select('*');
         console.log("Raw products query result:", productQuery);
-
-        const priceHistQuery = await supabase.from('pricehist').select('*');
-        console.log("Raw price history query result:", priceHistQuery);
         
         // Now try the function
         const { data, error } = await supabase
           .rpc('get_products_with_current_price');
 
+        console.log("get_products_with_current_price result:", data, error);
+
         if (error) {
           console.error("Error fetching products:", error);
+          
+          // Fallback to direct query if RPC fails
+          if (productQuery.data && productQuery.data.length > 0) {
+            console.log("Using direct product data as fallback");
+            setProducts(productQuery.data.map(p => ({
+              prodcode: p.prodcode,
+              description: p.description,
+              unit: p.unit,
+              current_price: null
+            })));
+            setFilteredProducts(productQuery.data.map(p => ({
+              prodcode: p.prodcode,
+              description: p.description,
+              unit: p.unit,
+              current_price: null
+            })));
+            return;
+          }
+          
           throw error;
         }
 
@@ -102,7 +122,6 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
     }
   }, [connectionStatus]);
 
-  // Filter products based on search query
   useEffect(() => {
     if (!searchQuery.trim()) {
       setFilteredProducts(products);
@@ -149,7 +168,9 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
   const handleAddDummyData = async () => {
     try {
       setLoading(true);
+      toast.info("Adding sample product data...");
       
+      console.log("Adding sample products...");
       // Add some sample product data
       const { error: productError } = await supabase
         .from('product')
@@ -158,9 +179,13 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
           { prodcode: 'PROD002', description: 'Desk Lamp', unit: 'each' },
           { prodcode: 'PROD003', description: 'Notebook', unit: 'dozen' }
         ]);
-        
-      if (productError) throw productError;
       
+      if (productError) {
+        console.error("Error adding sample products:", productError);
+        throw productError;
+      }
+      
+      console.log("Adding sample price history...");
       // Add price history for these products
       const today = new Date();
       const yesterday = new Date(today);
@@ -176,21 +201,19 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
           { prodcode: 'PROD002', effdate: yesterday.toISOString().split('T')[0], unitprice: 32.75 }
         ]);
         
-      if (priceError) throw priceError;
+      if (priceError) {
+        console.error("Error adding sample price history:", priceError);
+        throw priceError;
+      }
       
       toast.success("Sample data added successfully!");
       
-      // Refresh the product list
-      const { data, error } = await supabase.rpc('get_products_with_current_price');
-      
-      if (error) throw error;
-      
-      setProducts(data || []);
-      setFilteredProducts(data || []);
+      // Refresh the product list by reloading the page
+      navigate(0);
       
     } catch (err) {
       console.error("Error adding sample data:", err);
-      toast.error("Failed to add sample data");
+      toast.error("Failed to add sample data. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -198,11 +221,33 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
 
   if (connectionStatus === false) {
     return (
-      <div className="p-4 bg-red-50 text-red-600 rounded-md">
-        <AlertCircle className="h-6 w-6 mb-2" />
-        <p className="font-semibold">Database connection error</p>
-        <p className="text-sm">Cannot connect to the Supabase database</p>
-        <Button onClick={() => navigate(0)} className="mt-2">Retry</Button>
+      <div className="p-6 bg-red-50 text-red-600 rounded-lg border border-red-200">
+        <div className="flex items-center mb-4">
+          <AlertCircle className="h-6 w-6 mr-2" />
+          <h3 className="font-semibold text-lg">Database Connection Error</h3>
+        </div>
+        <p className="mb-3">Cannot connect to the Supabase database. This might be due to:</p>
+        <ul className="list-disc pl-5 mb-4 space-y-1">
+          <li>Network connectivity issues</li>
+          <li>Database configuration problems</li>
+          <li>Temporary Supabase service disruption</li>
+        </ul>
+        <Button onClick={() => navigate(0)} className="mb-2 w-full sm:w-auto">
+          Retry Connection
+        </Button>
+        <div className="mt-4 p-3 bg-white rounded border border-red-100 text-sm text-gray-600">
+          <p className="font-medium mb-1">Troubleshooting tip:</p>
+          <p>If this problem persists, try adding some sample data to your database using the button below.</p>
+          <Button 
+            variant="outline" 
+            className="mt-2 w-full"
+            onClick={handleAddDummyData} 
+            disabled={loading}
+          >
+            <Database className="mr-2 h-4 w-4" />
+            Initialize Sample Data
+          </Button>
+        </div>
       </div>
     );
   }
@@ -232,12 +277,10 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
       <div className="mb-4 flex justify-between items-center">
         <h2 className="text-xl font-semibold">Products</h2>
         
-        {products.length === 0 && (
-          <Button onClick={handleAddDummyData} disabled={loading}>
-            <Database className="mr-2 h-4 w-4" />
-            Add Sample Data
-          </Button>
-        )}
+        <Button onClick={handleAddDummyData} disabled={loading}>
+          <Database className="mr-2 h-4 w-4" />
+          {products.length === 0 ? "Add Sample Data" : "Reset Sample Data"}
+        </Button>
       </div>
 
       <div className="rounded-md border">

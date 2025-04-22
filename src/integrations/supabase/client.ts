@@ -14,16 +14,28 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 // Helper function to check database connection
 export const checkDatabaseConnection = async () => {
   try {
-    // Simple query to test connection
+    // First try a simple RPC call to test connection
+    const { data: rpcData, error: rpcError } = await supabase
+      .rpc('get_products_with_current_price', {}, { count: 'exact', head: true });
+    
+    if (!rpcError) {
+      console.log('RPC connection successful');
+      return { connected: true, data: rpcData };
+    }
+    
+    // If RPC fails, try a direct table query as fallback
+    console.log('RPC connection failed, trying direct table query...');
     const { data, error } = await supabase
       .from('product')
-      .select('count(*)', { count: 'exact', head: true });
+      .select('*')
+      .limit(1);
     
     if (error) {
       console.error('Database connection error:', error);
       return { connected: false, error };
     }
     
+    console.log('Direct table query successful');
     return { connected: true, data };
   } catch (err) {
     console.error('Unexpected error checking database:', err);
