@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { supabase, checkDatabaseConnection } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Table,
   TableBody,
@@ -16,7 +16,6 @@ import PriceHistoryDialog from "./PriceHistoryDialog";
 import DatabaseConnectionError from "./products/DatabaseConnectionError";
 import LoadingState from "./products/LoadingState";
 import ProductTableRow from "./products/ProductTableRow";
-import { Database } from "lucide-react";
 
 type ProductWithPrice = {
   prodcode: string;
@@ -43,13 +42,18 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
     const checkConnection = async () => {
       try {
         console.log("Checking database connection...");
-        const { connected, error } = await checkDatabaseConnection();
-        console.log("Connection check result:", connected);
-        setConnectionStatus(connected);
-        if (!connected) {
-          console.error("Database connection failed:", error);
+        const { data, error } = await supabase
+          .rpc('get_products_with_current_price', {}, { count: 'exact', head: true });
+        
+        if (error) {
+          console.error("Database connection error:", error);
+          setConnectionStatus(false);
           setError("Cannot connect to the database. Please check your connection.");
+          return;
         }
+        
+        console.log("RPC connection successful");
+        setConnectionStatus(true);
       } catch (err) {
         console.error("Connection check error:", err);
         setConnectionStatus(false);
@@ -183,7 +187,7 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
                 <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
                   {searchQuery ? 
                     "No products found matching your search" : 
-                    "No products found in the database. Use the 'Add Sample Data' button to add some example products."}
+                    "No products found in the database. Use the 'Add Product' button to add some products."}
                 </TableCell>
               </TableRow>
             ) : (
