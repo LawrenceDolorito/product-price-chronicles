@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -16,6 +15,7 @@ import PriceHistoryDialog from "./PriceHistoryDialog";
 import DatabaseConnectionError from "./products/DatabaseConnectionError";
 import LoadingState from "./products/LoadingState";
 import ProductTableRow from "./products/ProductTableRow";
+import { Database } from "lucide-react";
 
 type ProductWithPrice = {
   prodcode: string;
@@ -42,6 +42,7 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
     const checkConnection = async () => {
       try {
         console.log("Checking database connection...");
+        
         const { data, error } = await supabase
           .rpc('get_products_with_current_price', {}, { count: 'exact', head: true });
         
@@ -115,7 +116,6 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
       setLoading(true);
       toast.info("Adding sample product data...");
       
-      // Add some sample product data
       const { error: productError } = await supabase
         .from('product')
         .insert([
@@ -126,7 +126,6 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
       
       if (productError) throw productError;
       
-      // Add price history for these products
       const today = new Date();
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
@@ -187,7 +186,7 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
                 <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
                   {searchQuery ? 
                     "No products found matching your search" : 
-                    "No products found in the database. Use the 'Add Product' button to add some products."}
+                    "No products found in the database. Use the 'Add Sample Data' button to add some products."}
                 </TableCell>
               </TableRow>
             ) : (
