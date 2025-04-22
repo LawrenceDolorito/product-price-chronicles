@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { supabase, checkDatabaseConnection } from "@/integrations/supabase/client";
 import {
@@ -9,11 +10,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Pencil, Trash2, History, AlertCircle, Database } from "lucide-react";
 import { toast } from "sonner";
 import PriceHistoryDialog from "./PriceHistoryDialog";
+import DatabaseConnectionError from "./products/DatabaseConnectionError";
+import LoadingState from "./products/LoadingState";
+import ProductTableRow from "./products/ProductTableRow";
+import { Database } from "lucide-react";
 
 type ProductWithPrice = {
   prodcode: string;
@@ -62,46 +65,11 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
       try {
         setLoading(true);
         
-        console.log("Fetching products from Supabase...");
-        
-        // Try direct queries to diagnose issues
-        console.log("Testing direct table access...");
-        const productQuery = await supabase.from('product').select('*');
-        console.log("Raw products query result:", productQuery);
-        
-        // Now try the function
         const { data, error } = await supabase
           .rpc('get_products_with_current_price');
 
-        console.log("get_products_with_current_price result:", data, error);
-
-        if (error) {
-          console.error("Error fetching products:", error);
-          
-          // Fallback to direct query if RPC fails
-          if (productQuery.data && productQuery.data.length > 0) {
-            console.log("Using direct product data as fallback");
-            setProducts(productQuery.data.map(p => ({
-              prodcode: p.prodcode,
-              description: p.description,
-              unit: p.unit,
-              current_price: null
-            })));
-            setFilteredProducts(productQuery.data.map(p => ({
-              prodcode: p.prodcode,
-              description: p.description,
-              unit: p.unit,
-              current_price: null
-            })));
-            return;
-          }
-          
-          throw error;
-        }
-
-        console.log("Products fetched:", data);
+        if (error) throw error;
         
-        // If data is empty, show a notice but don't treat as error
         if (!data || data.length === 0) {
           console.log("No products found in database");
           toast.info("No products found in the database. You might need to add some products first.");
@@ -138,39 +106,11 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
     setFilteredProducts(filtered);
   }, [searchQuery, products]);
 
-  const handleEdit = (e: React.MouseEvent, prodcode: string) => {
-    e.stopPropagation();
-    navigate(`/product/${prodcode}`);
-  };
-
-  const handleDelete = (e: React.MouseEvent, prodcode: string) => {
-    e.stopPropagation();
-    // This is just a placeholder - in a real app you would delete the product
-    toast.info(`Delete functionality would remove product: ${prodcode}`);
-  };
-
-  const handleRowClick = (prodcode: string) => {
-    setSelectedProduct(prodcode);
-    setIsPriceHistoryOpen(true);
-  };
-
-  const handlePriceHistoryClose = () => {
-    setIsPriceHistoryOpen(false);
-    setSelectedProduct(null);
-  };
-
-  const handleShowPriceHistory = (e: React.MouseEvent, prodcode: string) => {
-    e.stopPropagation();
-    setSelectedProduct(prodcode);
-    setIsPriceHistoryOpen(true);
-  };
-
   const handleAddDummyData = async () => {
     try {
       setLoading(true);
       toast.info("Adding sample product data...");
       
-      console.log("Adding sample products...");
       // Add some sample product data
       const { error: productError } = await supabase
         .from('product')
@@ -180,12 +120,8 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
           { prodcode: 'PROD003', description: 'Notebook', unit: 'dozen' }
         ]);
       
-      if (productError) {
-        console.error("Error adding sample products:", productError);
-        throw productError;
-      }
+      if (productError) throw productError;
       
-      console.log("Adding sample price history...");
       // Add price history for these products
       const today = new Date();
       const yesterday = new Date(today);
@@ -201,16 +137,10 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
           { prodcode: 'PROD002', effdate: yesterday.toISOString().split('T')[0], unitprice: 32.75 }
         ]);
         
-      if (priceError) {
-        console.error("Error adding sample price history:", priceError);
-        throw priceError;
-      }
+      if (priceError) throw priceError;
       
       toast.success("Sample data added successfully!");
-      
-      // Refresh the product list by reloading the page
       navigate(0);
-      
     } catch (err) {
       console.error("Error adding sample data:", err);
       toast.error("Failed to add sample data. Please try again.");
@@ -221,68 +151,20 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
 
   if (connectionStatus === false) {
     return (
-      <div className="p-6 bg-red-50 text-red-600 rounded-lg border border-red-200">
-        <div className="flex items-center mb-4">
-          <AlertCircle className="h-6 w-6 mr-2" />
-          <h3 className="font-semibold text-lg">Database Connection Error</h3>
-        </div>
-        <p className="mb-3">Cannot connect to the Supabase database. This might be due to:</p>
-        <ul className="list-disc pl-5 mb-4 space-y-1">
-          <li>Network connectivity issues</li>
-          <li>Database configuration problems</li>
-          <li>Temporary Supabase service disruption</li>
-        </ul>
-        <Button onClick={() => navigate(0)} className="mb-2 w-full sm:w-auto">
-          Retry Connection
-        </Button>
-        <div className="mt-4 p-3 bg-white rounded border border-red-100 text-sm text-gray-600">
-          <p className="font-medium mb-1">Troubleshooting tip:</p>
-          <p>If this problem persists, try adding some sample data to your database using the button below.</p>
-          <Button 
-            variant="outline" 
-            className="mt-2 w-full"
-            onClick={handleAddDummyData} 
-            disabled={loading}
-          >
-            <Database className="mr-2 h-4 w-4" />
-            Initialize Sample Data
-          </Button>
-        </div>
-      </div>
+      <DatabaseConnectionError 
+        onRetry={() => navigate(0)}
+        onAddSampleData={handleAddDummyData}
+        loading={loading}
+      />
     );
   }
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Loading products...</span>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-4 bg-red-50 text-red-600 rounded-md">
-        <AlertCircle className="h-6 w-6 mb-2" />
-        <p className="font-semibold">Error loading products</p>
-        <p className="text-sm">{error}</p>
-        <Button onClick={() => navigate(0)} className="mt-2">Retry</Button>
-      </div>
-    );
+    return <LoadingState />;
   }
 
   return (
     <>
-      <div className="mb-4 flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Products</h2>
-        
-        <Button onClick={handleAddDummyData} disabled={loading}>
-          <Database className="mr-2 h-4 w-4" />
-          {products.length === 0 ? "Add Sample Data" : "Reset Sample Data"}
-        </Button>
-      </div>
-
       <div className="rounded-md border">
         <Table>
           <TableCaption>List of all products with current prices</TableCaption>
@@ -306,47 +188,27 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
               </TableRow>
             ) : (
               filteredProducts.map((product) => (
-                <TableRow 
-                  key={product.prodcode} 
-                  className="cursor-pointer hover:bg-gray-50"
-                  onClick={() => handleRowClick(product.prodcode)}
-                >
-                  <TableCell>{product.prodcode}</TableCell>
-                  <TableCell>{product.description || "—"}</TableCell>
-                  <TableCell>{product.unit || "—"}</TableCell>
-                  <TableCell className="text-right">
-                    {product.current_price !== null
-                      ? `$${product.current_price.toFixed(2)}`
-                      : "—"}
-                  </TableCell>
-                  <TableCell className="text-right flex justify-end gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={(e) => handleShowPriceHistory(e, product.prodcode)}
-                    >
-                      <History size={16} />
-                      <span className="hidden sm:inline ml-1">Price History</span>
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={(e) => handleEdit(e, product.prodcode)}
-                    >
-                      <Pencil size={16} />
-                      <span className="hidden sm:inline ml-1">Edit</span>
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="text-red-500 hover:text-red-700"
-                      onClick={(e) => handleDelete(e, product.prodcode)}
-                    >
-                      <Trash2 size={16} />
-                      <span className="hidden sm:inline ml-1">Delete</span>
-                    </Button>
-                  </TableCell>
-                </TableRow>
+                <ProductTableRow
+                  key={product.prodcode}
+                  product={product}
+                  onRowClick={() => {
+                    setSelectedProduct(product.prodcode);
+                    setIsPriceHistoryOpen(true);
+                  }}
+                  onShowPriceHistory={(e) => {
+                    e.stopPropagation();
+                    setSelectedProduct(product.prodcode);
+                    setIsPriceHistoryOpen(true);
+                  }}
+                  onEdit={(e) => {
+                    e.stopPropagation();
+                    navigate(`/product/${product.prodcode}`);
+                  }}
+                  onDelete={(e) => {
+                    e.stopPropagation();
+                    toast.info(`Delete functionality would remove product: ${product.prodcode}`);
+                  }}
+                />
               ))
             )}
           </TableBody>
@@ -355,7 +217,10 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
 
       <PriceHistoryDialog 
         isOpen={isPriceHistoryOpen}
-        onClose={handlePriceHistoryClose}
+        onClose={() => {
+          setIsPriceHistoryOpen(false);
+          setSelectedProduct(null);
+        }}
         productCode={selectedProduct}
       />
     </>
