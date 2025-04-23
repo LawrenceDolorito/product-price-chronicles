@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { 
@@ -9,7 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { CalendarIcon, Plus, Pencil, Trash2, Loader2, AlertCircle, Database } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, checkDatabaseConnection } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Table,
@@ -98,23 +97,20 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
         setIsLoading(true);
         setConnectionError(false);
         
-        // Test product table access
-        const { error: productError } = await supabase
-          .from('product')
-          .select('count(*)', { count: 'exact', head: true });
-          
-        // Test pricehist table access  
-        const { error: priceHistError } = await supabase
-          .from('pricehist')
-          .select('count(*)', { count: 'exact', head: true });
-          
-        if (productError || priceHistError) {
-          console.error("Database connection error:", productError || priceHistError);
+        const { connected, error } = await checkDatabaseConnection();
+        
+        if (!connected) {
+          console.error("Database connection error:", error);
           setConnectionError(true);
+          setError("Cannot connect to the database. Please check your connection.");
+          return;
         }
+        
+        console.log("Database connection successful");
       } catch (err) {
         console.error("Error testing database connection:", err);
         setConnectionError(true);
+        setError("Failed to check database connection");
       } finally {
         setIsLoading(false);
       }
@@ -141,8 +137,7 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
       console.log("Fetching product info for:", productCode);
       
       const { data, error } = await supabase
-        .from("product")
-        .select("prodcode, description, unit")
+        .rpc('get_products_with_current_price')
         .eq("prodcode", productCode)
         .single();
 
@@ -249,7 +244,6 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
       const formattedDate = format(values.effdate, "yyyy-MM-dd");
       
       if (isEditing && currentItem) {
-        // Delete the old record first (since effdate is part of the primary key)
         const { error: deleteError } = await supabase
           .from("pricehist")
           .delete()
@@ -259,7 +253,6 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
         if (deleteError) throw deleteError;
       }
       
-      // Insert the new record
       const { error } = await supabase
         .from("pricehist")
         .insert({
@@ -291,7 +284,6 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
     try {
       setIsLoading(true);
       
-      // Create sample price history entries
       const today = new Date();
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
@@ -332,7 +324,6 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
     }
   };
 
-  // If there's a connection error, show a connection error state
   if (connectionError && isOpen) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -352,7 +343,6 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
     );
   }
 
-  // If loading, show a loading state
   if (isLoading && !productInfo && isOpen) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -366,7 +356,6 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
     );
   }
 
-  // If there's an error, show an error state
   if (error && isOpen) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -477,7 +466,6 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
         </DialogContent>
       </Dialog>
 
-      {/* Form Dialog for Add/Edit */}
       <Dialog open={isFormOpen} onOpenChange={handleCloseForm}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
