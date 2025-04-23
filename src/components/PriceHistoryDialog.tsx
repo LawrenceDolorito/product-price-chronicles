@@ -88,7 +88,6 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
     },
   });
 
-  // Test database connection when the dialog opens
   useEffect(() => {
     const testConnection = async () => {
       if (!isOpen) return;
@@ -119,7 +118,6 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
     testConnection();
   }, [isOpen]);
 
-  // Fetch product information and price history
   useEffect(() => {
     if (isOpen && productCode && !connectionError) {
       fetchProductInfo();
@@ -244,24 +242,44 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
       const formattedDate = format(values.effdate, "yyyy-MM-dd");
       
       if (isEditing && currentItem) {
-        const { error: deleteError } = await supabase
+        const { error: updateError } = await supabase
           .from("pricehist")
-          .delete()
+          .update({ unitprice: values.unitprice })
           .eq("prodcode", productCode)
           .eq("effdate", currentItem.effdate);
           
-        if (deleteError) throw deleteError;
+        if (updateError) {
+          console.error("Update error, falling back to delete+insert:", updateError);
+          
+          const { error: deleteError } = await supabase
+            .from("pricehist")
+            .delete()
+            .eq("prodcode", productCode)
+            .eq("effdate", currentItem.effdate);
+            
+          if (deleteError) throw deleteError;
+          
+          const { error: insertError } = await supabase
+            .from("pricehist")
+            .insert({
+              prodcode: productCode,
+              effdate: formattedDate,
+              unitprice: values.unitprice,
+            });
+            
+          if (insertError) throw insertError;
+        }
+      } else {
+        const { error } = await supabase
+          .from("pricehist")
+          .insert({
+            prodcode: productCode,
+            effdate: formattedDate,
+            unitprice: values.unitprice,
+          });
+            
+        if (error) throw error;
       }
-      
-      const { error } = await supabase
-        .from("pricehist")
-        .insert({
-          prodcode: productCode,
-          effdate: formattedDate,
-          unitprice: values.unitprice,
-        });
-        
-      if (error) throw error;
       
       toast.success(`Price history ${isEditing ? "updated" : "added"} successfully`);
       await fetchPriceHistory();
