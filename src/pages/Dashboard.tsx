@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, checkDatabaseConnection } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, Package, DollarSign, History, Users, Barcode, Database, AlertCircle } from "lucide-react";
@@ -46,7 +46,6 @@ const Dashboard = () => {
     categoriesCount: 0
   });
   
-  // Check database connection
   useEffect(() => {
     const checkConnection = async () => {
       try {
@@ -233,7 +232,6 @@ const Dashboard = () => {
     fetchData();
   }, [connectionStatus]);
   
-  // Function to add sample data
   const handleAddSampleData = async () => {
     try {
       setLoading(true);
