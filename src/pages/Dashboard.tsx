@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -53,24 +52,18 @@ const Dashboard = () => {
       try {
         console.log("Checking database connection...");
         
-        // Test direct table access
-        const productTest = await supabase.from('product').select('count(*)', { count: 'exact', head: true });
-        console.log("Product table connection test:", productTest);
+        // Use the updated helper function to check connection
+        const { connected, error, count } = await checkDatabaseConnection();
         
-        const priceHistTest = await supabase.from('pricehist').select('count(*)', { count: 'exact', head: true });
-        console.log("PriceHist table connection test:", priceHistTest);
-        
-        // Test RPC function
-        const rpcTest = await supabase.rpc('get_products_with_current_price', {}, { count: 'exact', head: true });
-        console.log("RPC function test:", rpcTest);
+        console.log("Database connection status:", connected, "Item count:", count);
         
         setConnectionStatus({ 
           checking: false, 
-          connected: !(productTest.error || priceHistTest.error || rpcTest.error)
+          connected: connected
         });
         
-        if (productTest.error || priceHistTest.error || rpcTest.error) {
-          console.error("Database connection issues detected");
+        if (!connected) {
+          console.error("Database connection issues detected:", error);
         }
       } catch (err) {
         console.error("Error checking database connection:", err);
