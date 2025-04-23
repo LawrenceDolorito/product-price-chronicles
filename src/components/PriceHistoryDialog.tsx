@@ -5,10 +5,11 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { CalendarIcon, Plus, Pencil, Trash2, Loader2, AlertCircle, Database } from "lucide-react";
-import { supabase, checkDatabaseConnection } from "@/integrations/supabase/client";
+import { supabase, checkDatabaseConnection, updatePriceHistory } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Table,
@@ -242,32 +243,15 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
       const formattedDate = format(values.effdate, "yyyy-MM-dd");
       
       if (isEditing && currentItem) {
-        const { error: updateError } = await supabase
-          .from("pricehist")
-          .update({ unitprice: values.unitprice })
-          .eq("prodcode", productCode)
-          .eq("effdate", currentItem.effdate);
-          
-        if (updateError) {
-          console.error("Update error, falling back to delete+insert:", updateError);
-          
-          const { error: deleteError } = await supabase
-            .from("pricehist")
-            .delete()
-            .eq("prodcode", productCode)
-            .eq("effdate", currentItem.effdate);
-            
-          if (deleteError) throw deleteError;
-          
-          const { error: insertError } = await supabase
-            .from("pricehist")
-            .insert({
-              prodcode: productCode,
-              effdate: formattedDate,
-              unitprice: values.unitprice,
-            });
-            
-          if (insertError) throw insertError;
+        const { success, error } = await updatePriceHistory(
+          productCode,
+          currentItem.effdate,
+          formattedDate,
+          values.unitprice
+        );
+        
+        if (!success) {
+          throw error;
         }
       } else {
         const { error } = await supabase
@@ -396,6 +380,7 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
         <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>Price History</DialogTitle>
+            <DialogDescription>View and manage price history for this product.</DialogDescription>
           </DialogHeader>
           
           {productInfo && (
@@ -488,6 +473,9 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>{isEditing ? "Edit Price" : "Add New Price"}</DialogTitle>
+            <DialogDescription>
+              {isEditing ? "Update the price and effective date." : "Add a new price entry with an effective date."}
+            </DialogDescription>
           </DialogHeader>
           
           <Form {...form}>
@@ -559,7 +547,14 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
                   Cancel
                 </Button>
                 <Button type="submit" disabled={isLoading}>
-                  {isLoading ? "Saving..." : "Save"}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save'
+                  )}
                 </Button>
               </div>
             </form>

@@ -32,3 +32,56 @@ export const checkDatabaseConnection = async () => {
     return { connected: false, error: err };
   }
 };
+
+// Helper function to update price history
+export const updatePriceHistory = async (productCode: string, oldDate: string, newDate: string, price: number) => {
+  try {
+    // First try direct update if dates are the same
+    if (oldDate === newDate) {
+      const { data, error } = await supabase
+        .from("pricehist")
+        .update({ unitprice: price })
+        .eq("prodcode", productCode)
+        .eq("effdate", oldDate);
+        
+      if (!error) {
+        console.log("Price updated successfully via direct update");
+        return { success: true, data };
+      }
+      
+      console.error("Error with direct update:", error);
+    }
+    
+    // If direct update failed or dates are different, try delete and insert approach
+    console.log("Using delete and insert approach for price update");
+    
+    // Delete the old record
+    const { error: deleteError } = await supabase
+      .from("pricehist")
+      .delete()
+      .eq("prodcode", productCode)
+      .eq("effdate", oldDate);
+      
+    if (deleteError) {
+      throw deleteError;
+    }
+    
+    // Insert the new record
+    const { data: insertData, error: insertError } = await supabase
+      .from("pricehist")
+      .insert({
+        prodcode: productCode,
+        effdate: newDate,
+        unitprice: price,
+      });
+      
+    if (insertError) {
+      throw insertError;
+    }
+    
+    return { success: true, data: insertData };
+  } catch (err) {
+    console.error("Error updating price history:", err);
+    return { success: false, error: err };
+  }
+};
