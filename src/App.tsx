@@ -11,6 +11,7 @@ import ProductDetail from "./pages/ProductDetail";
 import Products from "./pages/Products";
 import Reports from "./pages/Reports";
 import UserManagement from "./pages/UserManagement";
+import AdminUserManagement from "./pages/AdminUserManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,25 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
+  }
+  
+  return children;
+};
+
+// Admin route component
+const AdminRoute = ({ children }: { children: JSX.Element }) => {
+  const { isAuthenticated, isLoading, profile } = useAuth();
+  
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" />;
+  }
+  
+  if (profile?.role !== 'admin') {
+    return <Navigate to="/dashboard" />;
   }
   
   return children;
@@ -73,6 +93,14 @@ const AppRoutes = () => {
           <ProtectedRoute>
             <UserManagement />
           </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/admin/user-management" 
+        element={
+          <AdminRoute>
+            <AdminUserManagement />
+          </AdminRoute>
         } 
       />
       <Route path="*" element={<NotFound />} />

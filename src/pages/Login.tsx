@@ -8,9 +8,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, UserPlus, Mail, Lock, User2, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { LogOut } from "lucide-react";
 
 const Login = () => {
-  const { login, signup, isLoading, isAuthenticated } = useAuth();
+  const { login, signup, isLoading, isAuthenticated, profile } = useAuth();
   const navigate = useNavigate();
   
   // Login form state
@@ -26,12 +27,12 @@ const Login = () => {
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
   const [signupAttempt, setSignupAttempt] = useState(false);
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated and not blocked
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && profile && profile.role !== 'blocked') {
       navigate("/dashboard");
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, profile, navigate]);
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,6 +88,47 @@ const Login = () => {
   const switchToLogin = () => {
     const loginTab = document.querySelector('[data-value="login"]') as HTMLElement;
     if (loginTab) loginTab.click();
+  };
+  
+  // Show blocked user message if authenticated but blocked
+  if (isAuthenticated && profile?.role === 'blocked') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="bg-red-50">
+            <div className="flex items-center justify-center text-red-600 mb-3">
+              <AlertCircle size={40} />
+            </div>
+            <CardTitle className="text-center text-red-700">Account Blocked</CardTitle>
+            <CardDescription className="text-center text-red-600">
+              Your account has been blocked by an administrator.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <p className="text-center text-gray-700 mb-6">
+              If you believe this is an error, please contact the system administrator for assistance.
+            </p>
+            <Button 
+              className="w-full" 
+              onClick={handleLogout}
+              variant="default"
+            >
+              <LogOut className="mr-2 h-4 w-4" /> Sign Out
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  
+  // Helper function to handle logout
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
   };
   
   return (

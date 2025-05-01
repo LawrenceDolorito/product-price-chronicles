@@ -8,7 +8,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, Plus, Pencil, Trash2, Loader2, AlertCircle, Database } from "lucide-react";
+import { CalendarIcon, Plus, Pencil, Trash2, Loader2, AlertCircle, Database, LogOut, RefreshCcw } from "lucide-react";
 import { supabase, checkDatabaseConnection, updatePriceHistory } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {

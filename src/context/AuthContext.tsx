@@ -9,6 +9,7 @@ type Profile = {
   first_name: string;
   last_name: string;
   avatar_url?: string;
+  role: string;
 };
 
 type AuthContextType = {
@@ -72,7 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Use the correct way to query the profiles table with the current types
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, avatar_url')
+        .select('id, first_name, last_name, avatar_url, role')
         .eq('id', userId)
         .single();
         
@@ -83,6 +84,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (data) {
         setProfile(data as Profile);
+        
+        // Check if user is blocked and log them out
+        if (data.role === 'blocked') {
+          toast.error("Your account has been blocked. Please contact an administrator.");
+          setTimeout(() => {
+            logout();
+          }, 2000);
+        }
       }
     } catch (error) {
       console.error("Profile fetch error:", error);
@@ -107,6 +116,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error("Login error:", error);
         toast.error(error.message);
         return false;
+      }
+
+      // Check if the user is blocked
+      if (data.user) {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single();
+          
+        if (!profileError && profile && profile.role === 'blocked') {
+          toast.error("Your account has been blocked. Please contact an administrator.");
+          await supabase.auth.signOut();
+          return false;
+        }
       }
 
       toast.success("Login successful!");

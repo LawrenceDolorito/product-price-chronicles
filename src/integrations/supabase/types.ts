@@ -169,16 +169,22 @@ export type Database = {
         Row: {
           effdate: string
           prodcode: string
+          stamp: string | null
+          status: string | null
           unitprice: number | null
         }
         Insert: {
           effdate: string
           prodcode: string
+          stamp?: string | null
+          status?: string | null
           unitprice?: number | null
         }
         Update: {
           effdate?: string
           prodcode?: string
+          stamp?: string | null
+          status?: string | null
           unitprice?: number | null
         }
         Relationships: [
@@ -195,16 +201,22 @@ export type Database = {
         Row: {
           description: string | null
           prodcode: string
+          stamp: string | null
+          status: string | null
           unit: string | null
         }
         Insert: {
           description?: string | null
           prodcode: string
+          stamp?: string | null
+          status?: string | null
           unit?: string | null
         }
         Update: {
           description?: string | null
           prodcode?: string
+          stamp?: string | null
+          status?: string | null
           unit?: string | null
         }
         Relationships: []
@@ -216,6 +228,7 @@ export type Database = {
           first_name: string | null
           id: string
           last_name: string | null
+          role: string
           updated_at: string
         }
         Insert: {
@@ -224,6 +237,7 @@ export type Database = {
           first_name?: string | null
           id: string
           last_name?: string | null
+          role?: string
           updated_at?: string
         }
         Update: {
@@ -232,6 +246,7 @@ export type Database = {
           first_name?: string | null
           id?: string
           last_name?: string | null
+          role?: string
           updated_at?: string
         }
         Relationships: []
@@ -305,11 +320,64 @@ export type Database = {
           },
         ]
       }
+      user_permissions: {
+        Row: {
+          can_add: boolean | null
+          can_delete: boolean | null
+          can_edit: boolean | null
+          created_at: string | null
+          id: string
+          table_name: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          can_add?: boolean | null
+          can_delete?: boolean | null
+          can_edit?: boolean | null
+          created_at?: string | null
+          id?: string
+          table_name: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          can_add?: boolean | null
+          can_delete?: boolean | null
+          can_edit?: boolean | null
+          created_at?: string | null
+          id?: string
+          table_name?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_permissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      can_user_add: {
+        Args: { table_name: string }
+        Returns: boolean
+      }
+      can_user_delete: {
+        Args: { table_name: string }
+        Returns: boolean
+      }
+      can_user_edit: {
+        Args: { table_name: string }
+        Returns: boolean
+      }
       get_products_with_current_price: {
         Args: Record<PropertyKey, never>
         Returns: {

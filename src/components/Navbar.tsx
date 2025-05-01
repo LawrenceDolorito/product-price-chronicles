@@ -3,7 +3,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Package, User, LogOut, BarChart2, Users } from "lucide-react";
+import { Package, User, LogOut, BarChart2, Users, Shield } from "lucide-react";
 
 const Navbar: React.FC = () => {
   const { user, profile, logout } = useAuth();
@@ -13,6 +13,8 @@ const Navbar: React.FC = () => {
     await logout();
     navigate("/login");
   };
+
+  const isAdmin = profile?.role === 'admin';
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
@@ -32,6 +34,9 @@ const Navbar: React.FC = () => {
             <>
               <span className="hidden md:inline text-sm text-gray-600">
                 Hello, {profile?.first_name || user.email?.split('@')[0]}
+                {isAdmin && (
+                  <span className="ml-2 text-xs font-medium text-primary">(Admin)</span>
+                )}
               </span>
               <Button
                 onClick={() => navigate("/dashboard")}
@@ -65,6 +70,16 @@ const Navbar: React.FC = () => {
               >
                 <Users size={18} className="mr-2" /> Users
               </Button>
+              {isAdmin && (
+                <Button
+                  onClick={() => navigate("/admin/user-management")}
+                  variant="ghost"
+                  size="sm"
+                  className="text-gray-600"
+                >
+                  <Shield size={18} className="mr-2" /> Manage Users
+                </Button>
+              )}
               <Button
                 onClick={handleLogout}
                 variant="ghost"
