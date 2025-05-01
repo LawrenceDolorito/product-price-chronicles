@@ -132,15 +132,7 @@ const Login = () => {
     );
   }
   
-  // Helper function to handle logout
-  const handleLogout = async () => {
-    try {
-      await logout();
-      navigate("/login");
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
-  };
+  // Removing the duplicate handleLogout function that was here
   
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 auth-container">
