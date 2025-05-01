@@ -55,6 +55,12 @@ interface PriceHistoryDialogProps {
   isOpen: boolean;
   onClose: () => void;
   productCode: string | null;
+  permissions?: {
+    canAdd: boolean;
+    canEdit: boolean;
+    canDelete: boolean;
+    isAdmin: boolean;
+  };
 }
 
 const formSchema = z.object({
@@ -71,6 +77,12 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
   isOpen,
   onClose,
   productCode,
+  permissions = { 
+    canAdd: true, 
+    canEdit: true, 
+    canDelete: true, 
+    isAdmin: false 
+  }
 }) => {
   const [priceHistory, setPriceHistory] = useState<PriceHistoryItem[]>([]);
   const [productInfo, setProductInfo] = useState<ProductInfo | null>(null);
@@ -193,6 +205,12 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
   };
 
   const handleAddNew = () => {
+    // Only proceed if user has add permission
+    if (!permissions.canAdd) {
+      toast.error("You don't have permission to add price history");
+      return;
+    }
+    
     form.reset({
       effdate: new Date(),
       unitprice: 0,
@@ -203,6 +221,12 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
   };
 
   const handleEdit = (item: PriceHistoryItem) => {
+    // Only proceed if user has edit permission
+    if (!permissions.canEdit) {
+      toast.error("You don't have permission to edit price history");
+      return;
+    }
+    
     form.reset({
       effdate: new Date(item.effdate),
       unitprice: item.unitprice,
@@ -213,6 +237,12 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
   };
 
   const handleDelete = async (date: string) => {
+    // Only proceed if user has delete permission
+    if (!permissions.canDelete) {
+      toast.error("You don't have permission to delete price history");
+      return;
+    }
+    
     if (!productCode) return;
     
     try {
@@ -420,6 +450,7 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
                           size="sm" 
                           onClick={addSamplePriceHistory}
                           className="mx-auto"
+                          disabled={!permissions.canAdd}
                         >
                           <Database size={16} className="mr-2" />
                           Add Sample Price History
@@ -434,23 +465,27 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
                       <TableCell>${item.unitprice.toFixed(2)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleEdit(item)}
-                          >
-                            <Pencil size={16} />
-                            <span className="ml-1">Edit</span>
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="text-red-500"
-                            onClick={() => handleDelete(item.effdate)}
-                          >
-                            <Trash2 size={16} />
-                            <span className="ml-1">Delete</span>
-                          </Button>
+                          {permissions.canEdit && (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleEdit(item)}
+                            >
+                              <Pencil size={16} />
+                              <span className="ml-1">Edit</span>
+                            </Button>
+                          )}
+                          {permissions.canDelete && (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="text-red-500"
+                              onClick={() => handleDelete(item.effdate)}
+                            >
+                              <Trash2 size={16} />
+                              <span className="ml-1">Delete</span>
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -460,12 +495,14 @@ const PriceHistoryDialog: React.FC<PriceHistoryDialogProps> = ({
             </Table>
           </div>
           
-          <div className="flex justify-end mt-4">
-            <Button onClick={handleAddNew}>
-              <Plus size={16} className="mr-1" />
-              Add
-            </Button>
-          </div>
+          {permissions.canAdd && (
+            <div className="flex justify-end mt-4">
+              <Button onClick={handleAddNew}>
+                <Plus size={16} className="mr-1" />
+                Add
+              </Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

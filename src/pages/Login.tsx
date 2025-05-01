@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -11,7 +12,7 @@ import { toast } from "sonner";
 import { LogOut } from "lucide-react";
 
 const Login = () => {
-  const { login, signup, isLoading, isAuthenticated, profile } = useAuth();
+  const { login, signup, logout, isLoading, isAuthenticated, profile } = useAuth();
   const navigate = useNavigate();
   
   // Login form state
@@ -26,6 +27,16 @@ const Login = () => {
   const [signupPassword, setSignupPassword] = useState("");
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
   const [signupAttempt, setSignupAttempt] = useState(false);
+
+  // Helper function to handle logout
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
 
   // Redirect if already authenticated and not blocked
   useEffect(() => {
