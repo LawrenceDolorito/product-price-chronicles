@@ -52,7 +52,7 @@ const UserManagement = () => {
   });
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, profile } = useAuth();
 
   useEffect(() => {
     fetchUsers();
@@ -83,20 +83,40 @@ const UserManagement = () => {
       // For demo purposes, we're using a direct query
       const { data: usersData, error: usersError } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name');
+        .select('id, first_name, last_name, email, role, created_at');
         
       if (usersError) throw usersError;
       
-      // In a real app, you would fetch the email from an admin API
-      // For demo purposes, we're simulating with random emails
-      const mockUsers = usersData.map((profile: any) => ({
+      // Ensure the admin email has full privileges
+      const adminEmail = "doloritolawrence@gmail.com";
+      let mockUsers = usersData.map((profile: any) => ({
         id: profile.id,
-        email: `${profile.first_name || 'user'}.${profile.last_name || Date.now().toString().slice(-4)}@example.com`.toLowerCase(),
-        role: Math.random() > 0.7 ? "admin" : "user",
-        created_at: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+        email: profile.email || `${profile.first_name || 'user'}.${profile.last_name || Date.now().toString().slice(-4)}@example.com`.toLowerCase(),
+        role: profile.email === adminEmail ? "admin" : (profile.role || (Math.random() > 0.7 ? "admin" : "user")),
+        created_at: profile.created_at || new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
         first_name: profile.first_name || '',
         last_name: profile.last_name || ''
       }));
+      
+      // Make sure the specific admin user is present and has admin role
+      const hasAdminUser = mockUsers.some(user => user.email === adminEmail);
+      
+      if (!hasAdminUser) {
+        // If the admin user doesn't exist in the fetched data, add it
+        mockUsers.push({
+          id: crypto.randomUUID(),
+          email: adminEmail,
+          role: "admin",
+          created_at: new Date().toISOString(),
+          first_name: "Admin",
+          last_name: "User"
+        });
+      } else {
+        // If it exists, make sure it has admin role
+        mockUsers = mockUsers.map(user => 
+          user.email === adminEmail ? { ...user, role: "admin" } : user
+        );
+      }
       
       setUsers(mockUsers);
       setFilteredUsers(mockUsers);
@@ -134,7 +154,7 @@ const UserManagement = () => {
     try {
       // In a real app, this would call an admin API to create users
       // For demo purposes, we'll simulate success
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       const newId = crypto.randomUUID();
       const newUserData = {
@@ -146,8 +166,10 @@ const UserManagement = () => {
         last_name: newUser.lastName
       };
       
-      setUsers(prev => [...prev, newUserData]);
-      setFilteredUsers(prev => [...prev, newUserData]);
+      // Update the users state with the new user - this ensures immediate UI update
+      const updatedUsers = [...users, newUserData];
+      setUsers(updatedUsers);
+      setFilteredUsers(updatedUsers);
       
       setNewUser({
         email: "",
@@ -181,8 +203,9 @@ const UserManagement = () => {
     try {
       // In a real app, this would call an admin API to delete users
       // For demo purposes, we'll just update the state
-      setUsers(prev => prev.filter(user => user.id !== id));
-      setFilteredUsers(prev => prev.filter(user => user.id !== id));
+      const updatedUsers = users.filter(user => user.id !== id);
+      setUsers(updatedUsers);
+      setFilteredUsers(updatedUsers);
       
       toast.success("User deleted successfully!");
     } catch (error) {
@@ -190,6 +213,9 @@ const UserManagement = () => {
       toast.error("Failed to delete user");
     }
   };
+
+  // Check if the current user is the specified admin
+  const isSpecialAdmin = profile?.email === "doloritolawrence@gmail.com";
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -368,6 +394,7 @@ const UserManagement = () => {
                         variant="outline" 
                         size="sm"
                         onClick={() => handleEditUser(user.id)}
+                        disabled={user.email === "doloritolawrence@gmail.com" && !isSpecialAdmin}
                       >
                         <Pencil size={16} />
                         <span className="hidden sm:inline ml-1">Edit</span>
@@ -377,6 +404,7 @@ const UserManagement = () => {
                         size="sm"
                         className="text-red-500 hover:text-red-700"
                         onClick={() => handleDeleteUser(user.id)}
+                        disabled={user.email === "doloritolawrence@gmail.com" && !isSpecialAdmin}
                       >
                         <Trash2 size={16} />
                         <span className="hidden sm:inline ml-1">Delete</span>
