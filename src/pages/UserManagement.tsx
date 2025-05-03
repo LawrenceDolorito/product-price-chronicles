@@ -52,7 +52,7 @@ const UserManagement = () => {
   });
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const { isAuthenticated, profile } = useAuth();
+  const { isAuthenticated, profile, user } = useAuth();
 
   useEffect(() => {
     fetchUsers();
@@ -215,7 +215,8 @@ const UserManagement = () => {
   };
 
   // Check if the current user is the specified admin
-  const isSpecialAdmin = profile?.email === "doloritolawrence@gmail.com";
+  // Fix: Access email from user object rather than profile
+  const isSpecialAdmin = user?.email === "doloritolawrence@gmail.com";
 
   return (
     <div className="min-h-screen bg-gray-50">
