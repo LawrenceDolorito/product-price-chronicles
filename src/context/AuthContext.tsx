@@ -10,7 +10,7 @@ type Profile = {
   last_name: string;
   avatar_url?: string;
   role: string;
-  email?: string;
+  email?: string; // Keep email as optional since it's not in the database table
 };
 
 type AuthContextType = {
@@ -71,10 +71,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = async (userId: string) => {
     try {
-      // Use the correct way to query the profiles table with the current types
+      // Remove email from the select query since it doesn't exist in the profiles table
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, avatar_url, role, email')
+        .select('id, first_name, last_name, avatar_url, role')
         .eq('id', userId)
         .single();
         
@@ -84,7 +84,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       if (data) {
-        setProfile(data as Profile);
+        // Add email from the auth user data instead of from profiles table
+        const profileWithEmail: Profile = {
+          ...data,
+          email: user?.email
+        };
+        
+        setProfile(profileWithEmail);
         
         // Special case: If user is doloritolawrence@gmail.com, ensure they have admin role
         if (user?.email === "doloritolawrence@gmail.com" && data.role !== 'admin') {
@@ -94,7 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .eq('id', userId);
             
           if (!updateError) {
-            setProfile({ ...data, role: 'admin' } as Profile);
+            setProfile({ ...profileWithEmail, role: 'admin' });
           }
         }
         
