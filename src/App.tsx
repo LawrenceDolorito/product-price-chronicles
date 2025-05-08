@@ -12,6 +12,7 @@ import Products from "./pages/Products";
 import Reports from "./pages/Reports";
 import UserManagement from "./pages/UserManagement";
 import AdminUserManagement from "./pages/AdminUserManagement";
+import UserPermissionsTable from "./pages/UserPermissionsTable";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -100,6 +101,14 @@ const AppRoutes = () => {
         element={
           <AdminRoute>
             <AdminUserManagement />
+          </AdminRoute>
+        } 
+      />
+      <Route 
+        path="/admin/user-permissions" 
+        element={
+          <AdminRoute>
+            <UserPermissionsTable />
           </AdminRoute>
         } 
       />

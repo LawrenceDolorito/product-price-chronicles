@@ -7,7 +7,7 @@ import {
   Table, TableBody, TableCaption, TableCell, 
   TableHead, TableHeader, TableRow 
 } from "@/components/ui/table";
-import { Loader2, Search, Users } from "lucide-react";
+import { Loader2, Search, Users, ExternalLink } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -163,6 +163,16 @@ const AdminUserManagement = () => {
             <p className="text-gray-600 mt-1">
               Manage user accounts, roles, and permissions
             </p>
+          </div>
+          <div className="mt-4 md:mt-0">
+            <Button
+              variant="default"
+              onClick={() => navigate('/admin/user-permissions')}
+              className="flex items-center gap-2"
+            >
+              <ExternalLink size={16} />
+              Manage Table Permissions
+            </Button>
           </div>
         </div>
         

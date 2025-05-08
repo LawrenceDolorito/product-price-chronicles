@@ -1,5 +1,6 @@
 
 import { TableCell, TableRow } from "@/components/ui/table";
+import { format } from "date-fns";
 import ProductTableActions from "./ProductTableActions";
 
 interface ProductTableRowProps {
@@ -10,6 +11,7 @@ interface ProductTableRowProps {
     current_price: number | null;
     status?: string | null;
     stamp?: string | null;
+    modified_by?: string | null;
   };
   onRowClick: () => void;
   onShowPriceHistory: (e: React.MouseEvent) => void;
@@ -53,6 +55,16 @@ const ProductTableRow = ({
     );
   };
 
+  const formatTimestamp = (timestamp: string | null | undefined) => {
+    if (!timestamp) return null;
+    try {
+      const date = new Date(timestamp);
+      return format(date, "yyyy-MM-dd HH:mm:ss");
+    } catch (error) {
+      return timestamp;
+    }
+  };
+
   const rowClasses = product.status === 'deleted' ? 'opacity-50' : '';
 
   return (
@@ -75,6 +87,16 @@ const ProductTableRow = ({
           ? `$${product.current_price.toFixed(2)}`
           : "—"}
       </TableCell>
+      {isAdmin && (
+        <TableCell>
+          {product.stamp && (
+            <div className="text-xs text-gray-500">
+              <div>{formatTimestamp(product.stamp)}</div>
+              {product.modified_by && <div className="mt-1">by {product.modified_by}</div>}
+            </div>
+          )}
+        </TableCell>
+      )}
       <TableCell className="text-right">
         <ProductTableActions 
           onShowPriceHistory={onShowPriceHistory}

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase, checkDatabaseConnection } from "@/integrations/supabase/client";
@@ -25,6 +24,7 @@ type ProductWithPrice = {
   current_price: number | null;
   status?: string;
   stamp?: string;
+  modified_by?: string;
 };
 
 interface ProductTableProps {
@@ -144,22 +144,47 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
           toast.info("No products found in the database. You might need to add some products first.");
         }
         
-        // If admin, fetch status and stamp information
+        // If admin, fetch status, stamp, and user information
         if (isAdmin) {
           const { data: productData, error: productError } = await supabase
             .from('product')
             .select('prodcode, status, stamp');
             
           if (!productError && productData) {
-            // Merge product data with status and stamp
+            // Get profile information to map user IDs to names
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('id, first_name, last_name');
+              
+            let userMap = {};
+            if (!profileError && profileData) {
+              profileData.forEach((profile: any) => {
+                userMap[profile.id] = `${profile.first_name} ${profile.last_name}`.trim();
+              });
+            }
+            
+            // Merge product data with status, stamp, and user info
             const productsWithStatus = data.map((product: ProductWithPrice) => {
               const productInfo = productData.find(p => p.prodcode === product.prodcode);
+              
+              // Extract user ID from stamp metadata if available
+              let modifiedBy = null;
+              if (productInfo?.stamp) {
+                const stampParts = productInfo.stamp.split('_');
+                if (stampParts.length > 1) {
+                  const userId = stampParts[1];
+                  modifiedBy = userMap[userId] || userId;
+                }
+              }
+              
               return {
                 ...product,
                 status: productInfo?.status || null,
-                stamp: productInfo?.stamp || null
+                stamp: productInfo?.stamp || null,
+                modified_by: modifiedBy
               };
             });
+            
             setProducts(productsWithStatus || []);
             setFilteredProducts(productsWithStatus || []);
             return;
@@ -333,13 +358,14 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
               <TableHead>Description</TableHead>
               <TableHead>Unit</TableHead>
               <TableHead className="text-right">Current Price</TableHead>
+              {isAdmin && <TableHead>Last Modified</TableHead>}
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredProducts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
+                <TableCell colSpan={isAdmin ? 6 : 5} className="text-center py-10 text-muted-foreground">
                   {searchQuery ? 
                     "No products found matching your search" : 
                     "No products found in the database. Use the 'Add Sample Data' button to add some products."}
@@ -367,7 +393,7 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
                     e.stopPropagation();
                     if (isAdmin) {
                       // Update status instead of actual delete for admins
-                      const timestamp = new Date().toISOString();
+                      const timestamp = new Date().toISOString() + '_' + profile?.id;
                       supabase
                         .from('product')
                         .update({ 
@@ -382,18 +408,20 @@ const ProductTable = ({ searchQuery = "" }: ProductTableProps) => {
                             return;
                           }
                           
-                          // Update product in state
+                          // Update product in state with user info
+                          const modifiedBy = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : '';
+                          
                           setProducts(prev => 
                             prev.map(p => 
                               p.prodcode === product.prodcode 
-                                ? { ...p, status: 'deleted', stamp: timestamp } 
+                                ? { ...p, status: 'deleted', stamp: timestamp, modified_by: modifiedBy } 
                                 : p
                             )
                           );
                           setFilteredProducts(prev => 
                             prev.map(p => 
                               p.prodcode === product.prodcode 
-                                ? { ...p, status: 'deleted', stamp: timestamp } 
+                                ? { ...p, status: 'deleted', stamp: timestamp, modified_by: modifiedBy } 
                                 : p
                             )
                           );
