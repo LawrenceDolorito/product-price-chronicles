@@ -116,6 +116,30 @@ const AdminUserManagement = () => {
           (p: any) => p.user_id === profile.id
         );
         
+        // Default permissions to false if not found
+        if (userPermissions.length === 0 && profile.role !== 'admin') {
+          // For non-admin users, create default "NO" permissions
+          const defaultProductPermissions = {
+            id: `default-product-${profile.id}`,
+            user_id: profile.id,
+            table_name: 'product',
+            can_add: false,
+            can_edit: false,
+            can_delete: false
+          };
+          
+          const defaultPriceHistPermissions = {
+            id: `default-pricehist-${profile.id}`,
+            user_id: profile.id,
+            table_name: 'pricehist',
+            can_add: false,
+            can_edit: false,
+            can_delete: false
+          };
+          
+          userPermissions.push(defaultProductPermissions, defaultPriceHistPermissions);
+        }
+        
         return {
           id: profile.id,
           email: profile.email || `user-${profile.id.slice(0, 8)}@example.com`,

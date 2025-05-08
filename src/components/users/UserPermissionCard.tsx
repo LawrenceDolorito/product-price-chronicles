@@ -33,9 +33,9 @@ const UserPermissionCard = ({
   const getTablePermission = (tableName: string): Permission => {
     return permissions.find(p => p.table_name === tableName) || {
       table_name: tableName,
-      can_add: true,
-      can_edit: true,
-      can_delete: true
+      can_add: false,
+      can_edit: false,
+      can_delete: false
     };
   };
 
@@ -86,25 +86,6 @@ const UserPermissionCard = ({
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="flex justify-between items-center py-1">
-                    <span className="text-sm">Add Products</span>
-                    <div className="flex items-center">
-                      {renderYesNo(productPermissions.can_add)}
-                      {!isDisabled && isAdmin && (
-                        <div className="ml-2">
-                          <PermissionToggle
-                            userId={userId}
-                            tableName="product"
-                            permissionType="can_add"
-                            defaultValue={productPermissions.can_add}
-                            label=""
-                            disabled={isDisabled || !isAdmin}
-                            showLabel={false}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center py-1">
                     <span className="text-sm">Edit Products</span>
                     <div className="flex items-center">
                       {renderYesNo(productPermissions.can_edit)}
@@ -142,6 +123,25 @@ const UserPermissionCard = ({
                       )}
                     </div>
                   </div>
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-sm">Add Products</span>
+                    <div className="flex items-center">
+                      {renderYesNo(productPermissions.can_add)}
+                      {!isDisabled && isAdmin && (
+                        <div className="ml-2">
+                          <PermissionToggle
+                            userId={userId}
+                            tableName="product"
+                            permissionType="can_add"
+                            defaultValue={productPermissions.can_add}
+                            label=""
+                            disabled={isDisabled || !isAdmin}
+                            showLabel={false}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
               
@@ -151,25 +151,6 @@ const UserPermissionCard = ({
                   Price History Table
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="flex justify-between items-center py-1">
-                    <span className="text-sm">Add Price History</span>
-                    <div className="flex items-center">
-                      {renderYesNo(priceHistPermissions.can_add)}
-                      {!isDisabled && isAdmin && (
-                        <div className="ml-2">
-                          <PermissionToggle
-                            userId={userId}
-                            tableName="pricehist"
-                            permissionType="can_add"
-                            defaultValue={priceHistPermissions.can_add}
-                            label=""
-                            disabled={isDisabled || !isAdmin}
-                            showLabel={false}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </div>
                   <div className="flex justify-between items-center py-1">
                     <span className="text-sm">Edit Price History</span>
                     <div className="flex items-center">
@@ -200,6 +181,25 @@ const UserPermissionCard = ({
                             tableName="pricehist"
                             permissionType="can_delete"
                             defaultValue={priceHistPermissions.can_delete}
+                            label=""
+                            disabled={isDisabled || !isAdmin}
+                            showLabel={false}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-sm">Add Price History</span>
+                    <div className="flex items-center">
+                      {renderYesNo(priceHistPermissions.can_add)}
+                      {!isDisabled && isAdmin && (
+                        <div className="ml-2">
+                          <PermissionToggle
+                            userId={userId}
+                            tableName="pricehist"
+                            permissionType="can_add"
+                            defaultValue={priceHistPermissions.can_add}
                             label=""
                             disabled={isDisabled || !isAdmin}
                             showLabel={false}
