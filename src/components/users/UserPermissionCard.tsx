@@ -42,7 +42,17 @@ const UserPermissionCard = ({
   const productPermissions = getTablePermission('product');
   const priceHistPermissions = getTablePermission('pricehist');
   
+  // Admin or blocked users' permissions can't be modified
   const isDisabled = userRole === 'blocked' || userRole === 'admin';
+  
+  // Helper function to render Yes/No based on permission value
+  const renderYesNo = (hasPermission: boolean) => {
+    if (userRole === 'admin') return <span className="font-medium text-green-600">YES</span>;
+    
+    return hasPermission ? 
+      <span className="font-medium text-green-600">YES</span> : 
+      <span className="font-medium text-red-600">NO</span>;
+  };
   
   return (
     <Collapsible
@@ -74,30 +84,65 @@ const UserPermissionCard = ({
                   <DatabaseIcon className="h-4 w-4 mr-2" /> 
                   Products Table
                 </div>
-                <PermissionToggle
-                  userId={userId}
-                  tableName="product"
-                  permissionType="can_add"
-                  defaultValue={productPermissions.can_add}
-                  label="Add Products"
-                  disabled={isDisabled || !isAdmin}
-                />
-                <PermissionToggle
-                  userId={userId}
-                  tableName="product"
-                  permissionType="can_edit"
-                  defaultValue={productPermissions.can_edit}
-                  label="Edit Products"
-                  disabled={isDisabled || !isAdmin}
-                />
-                <PermissionToggle
-                  userId={userId}
-                  tableName="product"
-                  permissionType="can_delete"
-                  defaultValue={productPermissions.can_delete}
-                  label="Delete Products"
-                  disabled={isDisabled || !isAdmin}
-                />
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-sm">Add Products</span>
+                    <div className="flex items-center">
+                      {renderYesNo(productPermissions.can_add)}
+                      {!isDisabled && isAdmin && (
+                        <div className="ml-2">
+                          <PermissionToggle
+                            userId={userId}
+                            tableName="product"
+                            permissionType="can_add"
+                            defaultValue={productPermissions.can_add}
+                            label=""
+                            disabled={isDisabled || !isAdmin}
+                            showLabel={false}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-sm">Edit Products</span>
+                    <div className="flex items-center">
+                      {renderYesNo(productPermissions.can_edit)}
+                      {!isDisabled && isAdmin && (
+                        <div className="ml-2">
+                          <PermissionToggle
+                            userId={userId}
+                            tableName="product"
+                            permissionType="can_edit"
+                            defaultValue={productPermissions.can_edit}
+                            label=""
+                            disabled={isDisabled || !isAdmin}
+                            showLabel={false}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-sm">Delete Products</span>
+                    <div className="flex items-center">
+                      {renderYesNo(productPermissions.can_delete)}
+                      {!isDisabled && isAdmin && (
+                        <div className="ml-2">
+                          <PermissionToggle
+                            userId={userId}
+                            tableName="product"
+                            permissionType="can_delete"
+                            defaultValue={productPermissions.can_delete}
+                            label=""
+                            disabled={isDisabled || !isAdmin}
+                            showLabel={false}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
               
               <div className="space-y-2">
@@ -105,30 +150,65 @@ const UserPermissionCard = ({
                   <DatabaseIcon className="h-4 w-4 mr-2" /> 
                   Price History Table
                 </div>
-                <PermissionToggle
-                  userId={userId}
-                  tableName="pricehist"
-                  permissionType="can_add"
-                  defaultValue={priceHistPermissions.can_add}
-                  label="Add Price History"
-                  disabled={isDisabled || !isAdmin}
-                />
-                <PermissionToggle
-                  userId={userId}
-                  tableName="pricehist"
-                  permissionType="can_edit"
-                  defaultValue={priceHistPermissions.can_edit}
-                  label="Edit Price History"
-                  disabled={isDisabled || !isAdmin}
-                />
-                <PermissionToggle
-                  userId={userId}
-                  tableName="pricehist"
-                  permissionType="can_delete"
-                  defaultValue={priceHistPermissions.can_delete}
-                  label="Delete Price History"
-                  disabled={isDisabled || !isAdmin}
-                />
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-sm">Add Price History</span>
+                    <div className="flex items-center">
+                      {renderYesNo(priceHistPermissions.can_add)}
+                      {!isDisabled && isAdmin && (
+                        <div className="ml-2">
+                          <PermissionToggle
+                            userId={userId}
+                            tableName="pricehist"
+                            permissionType="can_add"
+                            defaultValue={priceHistPermissions.can_add}
+                            label=""
+                            disabled={isDisabled || !isAdmin}
+                            showLabel={false}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-sm">Edit Price History</span>
+                    <div className="flex items-center">
+                      {renderYesNo(priceHistPermissions.can_edit)}
+                      {!isDisabled && isAdmin && (
+                        <div className="ml-2">
+                          <PermissionToggle
+                            userId={userId}
+                            tableName="pricehist"
+                            permissionType="can_edit"
+                            defaultValue={priceHistPermissions.can_edit}
+                            label=""
+                            disabled={isDisabled || !isAdmin}
+                            showLabel={false}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-sm">Delete Price History</span>
+                    <div className="flex items-center">
+                      {renderYesNo(priceHistPermissions.can_delete)}
+                      {!isDisabled && isAdmin && (
+                        <div className="ml-2">
+                          <PermissionToggle
+                            userId={userId}
+                            tableName="pricehist"
+                            permissionType="can_delete"
+                            defaultValue={priceHistPermissions.can_delete}
+                            label=""
+                            disabled={isDisabled || !isAdmin}
+                            showLabel={false}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>

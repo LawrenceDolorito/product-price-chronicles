@@ -26,6 +26,7 @@ type UserPermissionRow = {
   first_name: string;
   last_name: string;
   email: string;
+  role: string;
   edit_product: boolean;
   delete_product: boolean;
   add_product: boolean;
@@ -81,9 +82,6 @@ const UserPermissionsTable = () => {
         
       if (permissionsError) throw permissionsError;
       
-      // Get emails from auth.users (would need admin access to Supabase to do this in a real app)
-      // For now, we'll use mock emails based on first and last names
-      
       // Combine all data
       const usersWithPermissions = profilesData.map((profile: any) => {
         // Find permissions for this user
@@ -110,13 +108,13 @@ const UserPermissionsTable = () => {
           first_name: profile.first_name || '',
           last_name: profile.last_name || '',
           email: email,
+          role: profile.role || 'user',
           edit_product: productPermissions.can_edit,
           delete_product: productPermissions.can_delete,
           add_product: productPermissions.can_add,
           edit_pricehist: pricehistPermissions.can_edit,
           delete_pricehist: pricehistPermissions.can_delete,
-          add_pricehist: pricehistPermissions.can_add,
-          role: profile.role
+          add_pricehist: pricehistPermissions.can_add
         };
       });
       
@@ -291,82 +289,208 @@ const UserPermissionsTable = () => {
                         )}
                       </div>
                     </TableCell>
+                    
                     <TableCell>
-                      {isAdminUser(user.email) ? (
-                        <Check className="h-5 w-5 text-green-500" />
+                      {isAdminUser(user.email) || user.role === 'admin' ? (
+                        <span className="font-medium text-green-600">YES</span>
+                      ) : user.edit_product ? (
+                        <div className="flex items-center">
+                          <span className="font-medium text-green-600 mr-2">YES</span>
+                          {isSpecialAdmin && (
+                            <Switch 
+                              checked={user.edit_product}
+                              onCheckedChange={(checked) => {
+                                handlePermissionChange(user.id, 'product', 'can_edit', checked);
+                              }}
+                              disabled={!isSpecialAdmin}
+                              size="sm"
+                            />
+                          )}
+                        </div>
                       ) : (
-                        <Switch 
-                          checked={user.edit_product}
-                          onCheckedChange={(checked) => {
-                            handlePermissionChange(user.id, 'product', 'can_edit', checked);
-                          }}
-                          disabled={!isSpecialAdmin}
-                        />
+                        <div className="flex items-center">
+                          <span className="font-medium text-red-600 mr-2">NO</span>
+                          {isSpecialAdmin && (
+                            <Switch
+                              checked={user.edit_product}
+                              onCheckedChange={(checked) => {
+                                handlePermissionChange(user.id, 'product', 'can_edit', checked);
+                              }}
+                              disabled={!isSpecialAdmin}
+                              size="sm"
+                            />
+                          )}
+                        </div>
                       )}
                     </TableCell>
+                    
                     <TableCell>
-                      {isAdminUser(user.email) ? (
-                        <Check className="h-5 w-5 text-green-500" />
+                      {isAdminUser(user.email) || user.role === 'admin' ? (
+                        <span className="font-medium text-green-600">YES</span>
+                      ) : user.delete_product ? (
+                        <div className="flex items-center">
+                          <span className="font-medium text-green-600 mr-2">YES</span>
+                          {isSpecialAdmin && (
+                            <Switch
+                              checked={user.delete_product}
+                              onCheckedChange={(checked) => {
+                                handlePermissionChange(user.id, 'product', 'can_delete', checked);
+                              }}
+                              disabled={!isSpecialAdmin}
+                              size="sm"
+                            />
+                          )}
+                        </div>
                       ) : (
-                        <Switch
-                          checked={user.delete_product}
-                          onCheckedChange={(checked) => {
-                            handlePermissionChange(user.id, 'product', 'can_delete', checked);
-                          }}
-                          disabled={!isSpecialAdmin}
-                        />
+                        <div className="flex items-center">
+                          <span className="font-medium text-red-600 mr-2">NO</span>
+                          {isSpecialAdmin && (
+                            <Switch
+                              checked={user.delete_product}
+                              onCheckedChange={(checked) => {
+                                handlePermissionChange(user.id, 'product', 'can_delete', checked);
+                              }}
+                              disabled={!isSpecialAdmin}
+                              size="sm"
+                            />
+                          )}
+                        </div>
                       )}
                     </TableCell>
+                    
                     <TableCell>
-                      {isAdminUser(user.email) ? (
-                        <Check className="h-5 w-5 text-green-500" />
+                      {isAdminUser(user.email) || user.role === 'admin' ? (
+                        <span className="font-medium text-green-600">YES</span>
+                      ) : user.add_product ? (
+                        <div className="flex items-center">
+                          <span className="font-medium text-green-600 mr-2">YES</span>
+                          {isSpecialAdmin && (
+                            <Switch
+                              checked={user.add_product}
+                              onCheckedChange={(checked) => {
+                                handlePermissionChange(user.id, 'product', 'can_add', checked);
+                              }}
+                              disabled={!isSpecialAdmin}
+                              size="sm"
+                            />
+                          )}
+                        </div>
                       ) : (
-                        <Switch
-                          checked={user.add_product}
-                          onCheckedChange={(checked) => {
-                            handlePermissionChange(user.id, 'product', 'can_add', checked);
-                          }}
-                          disabled={!isSpecialAdmin}
-                        />
+                        <div className="flex items-center">
+                          <span className="font-medium text-red-600 mr-2">NO</span>
+                          {isSpecialAdmin && (
+                            <Switch
+                              checked={user.add_product}
+                              onCheckedChange={(checked) => {
+                                handlePermissionChange(user.id, 'product', 'can_add', checked);
+                              }}
+                              disabled={!isSpecialAdmin}
+                              size="sm"
+                            />
+                          )}
+                        </div>
                       )}
                     </TableCell>
+                    
                     <TableCell>
-                      {isAdminUser(user.email) ? (
-                        <Check className="h-5 w-5 text-green-500" />
+                      {isAdminUser(user.email) || user.role === 'admin' ? (
+                        <span className="font-medium text-green-600">YES</span>
+                      ) : user.edit_pricehist ? (
+                        <div className="flex items-center">
+                          <span className="font-medium text-green-600 mr-2">YES</span>
+                          {isSpecialAdmin && (
+                            <Switch
+                              checked={user.edit_pricehist}
+                              onCheckedChange={(checked) => {
+                                handlePermissionChange(user.id, 'pricehist', 'can_edit', checked);
+                              }}
+                              disabled={!isSpecialAdmin}
+                              size="sm"
+                            />
+                          )}
+                        </div>
                       ) : (
-                        <Switch
-                          checked={user.edit_pricehist}
-                          onCheckedChange={(checked) => {
-                            handlePermissionChange(user.id, 'pricehist', 'can_edit', checked);
-                          }}
-                          disabled={!isSpecialAdmin}
-                        />
+                        <div className="flex items-center">
+                          <span className="font-medium text-red-600 mr-2">NO</span>
+                          {isSpecialAdmin && (
+                            <Switch
+                              checked={user.edit_pricehist}
+                              onCheckedChange={(checked) => {
+                                handlePermissionChange(user.id, 'pricehist', 'can_edit', checked);
+                              }}
+                              disabled={!isSpecialAdmin}
+                              size="sm"
+                            />
+                          )}
+                        </div>
                       )}
                     </TableCell>
+                    
                     <TableCell>
-                      {isAdminUser(user.email) ? (
-                        <Check className="h-5 w-5 text-green-500" />
+                      {isAdminUser(user.email) || user.role === 'admin' ? (
+                        <span className="font-medium text-green-600">YES</span>
+                      ) : user.delete_pricehist ? (
+                        <div className="flex items-center">
+                          <span className="font-medium text-green-600 mr-2">YES</span>
+                          {isSpecialAdmin && (
+                            <Switch
+                              checked={user.delete_pricehist}
+                              onCheckedChange={(checked) => {
+                                handlePermissionChange(user.id, 'pricehist', 'can_delete', checked);
+                              }}
+                              disabled={!isSpecialAdmin}
+                              size="sm"
+                            />
+                          )}
+                        </div>
                       ) : (
-                        <Switch
-                          checked={user.delete_pricehist}
-                          onCheckedChange={(checked) => {
-                            handlePermissionChange(user.id, 'pricehist', 'can_delete', checked);
-                          }}
-                          disabled={!isSpecialAdmin}
-                        />
+                        <div className="flex items-center">
+                          <span className="font-medium text-red-600 mr-2">NO</span>
+                          {isSpecialAdmin && (
+                            <Switch
+                              checked={user.delete_pricehist}
+                              onCheckedChange={(checked) => {
+                                handlePermissionChange(user.id, 'pricehist', 'can_delete', checked);
+                              }}
+                              disabled={!isSpecialAdmin}
+                              size="sm"
+                            />
+                          )}
+                        </div>
                       )}
                     </TableCell>
+                    
                     <TableCell>
-                      {isAdminUser(user.email) ? (
-                        <Check className="h-5 w-5 text-green-500" />
+                      {isAdminUser(user.email) || user.role === 'admin' ? (
+                        <span className="font-medium text-green-600">YES</span>
+                      ) : user.add_pricehist ? (
+                        <div className="flex items-center">
+                          <span className="font-medium text-green-600 mr-2">YES</span>
+                          {isSpecialAdmin && (
+                            <Switch
+                              checked={user.add_pricehist}
+                              onCheckedChange={(checked) => {
+                                handlePermissionChange(user.id, 'pricehist', 'can_add', checked);
+                              }}
+                              disabled={!isSpecialAdmin}
+                              size="sm"
+                            />
+                          )}
+                        </div>
                       ) : (
-                        <Switch
-                          checked={user.add_pricehist}
-                          onCheckedChange={(checked) => {
-                            handlePermissionChange(user.id, 'pricehist', 'can_add', checked);
-                          }}
-                          disabled={!isSpecialAdmin}
-                        />
+                        <div className="flex items-center">
+                          <span className="font-medium text-red-600 mr-2">NO</span>
+                          {isSpecialAdmin && (
+                            <Switch
+                              checked={user.add_pricehist}
+                              onCheckedChange={(checked) => {
+                                handlePermissionChange(user.id, 'pricehist', 'can_add', checked);
+                              }}
+                              disabled={!isSpecialAdmin}
+                              size="sm"
+                            />
+                          )}
+                        </div>
                       )}
                     </TableCell>
                   </TableRow>

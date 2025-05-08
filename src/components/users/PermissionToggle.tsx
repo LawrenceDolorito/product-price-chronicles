@@ -13,6 +13,7 @@ interface PermissionToggleProps {
   defaultValue: boolean;
   label: string;
   disabled?: boolean;
+  showLabel?: boolean;
 }
 
 const PermissionToggle = ({
@@ -21,7 +22,8 @@ const PermissionToggle = ({
   permissionType,
   defaultValue,
   label,
-  disabled = false
+  disabled = false,
+  showLabel = true
 }: PermissionToggleProps) => {
   const [value, setValue] = useState(defaultValue);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -64,10 +66,10 @@ const PermissionToggle = ({
       }
       
       setValue(checked);
-      toast.success(`${label} permission ${checked ? 'granted' : 'revoked'}`);
+      toast.success(`${label || 'Permission'} ${checked ? 'granted' : 'revoked'}`);
     } catch (error) {
       console.error("Error updating permission:", error);
-      toast.error(`Failed to update ${label.toLowerCase()} permission`);
+      toast.error(`Failed to update ${label.toLowerCase() || 'permission'}`);
     } finally {
       setIsUpdating(false);
     }
@@ -80,18 +82,21 @@ const PermissionToggle = ({
         checked={value}
         onCheckedChange={handleToggle}
         disabled={disabled || isUpdating}
+        size="sm"
       />
-      <Label 
-        htmlFor={`${userId}-${tableName}-${permissionType}`}
-        className={disabled ? "text-gray-400" : ""}
-      >
-        {isUpdating ? (
-          <span className="flex items-center">
-            <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-            Updating...
-          </span>
-        ) : label}
-      </Label>
+      {showLabel && label && (
+        <Label 
+          htmlFor={`${userId}-${tableName}-${permissionType}`}
+          className={disabled ? "text-gray-400" : ""}
+        >
+          {isUpdating ? (
+            <span className="flex items-center">
+              <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+              Updating...
+            </span>
+          ) : label}
+        </Label>
+      )}
     </div>
   );
 };
