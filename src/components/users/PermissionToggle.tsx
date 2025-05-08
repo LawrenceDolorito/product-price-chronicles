@@ -82,7 +82,7 @@ const PermissionToggle = ({
         checked={value}
         onCheckedChange={handleToggle}
         disabled={disabled || isUpdating}
-        size="sm"
+        className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
       />
       {showLabel && label && (
         <Label 

@@ -303,7 +303,7 @@ const UserPermissionsTable = () => {
                                 handlePermissionChange(user.id, 'product', 'can_edit', checked);
                               }}
                               disabled={!isSpecialAdmin}
-                              size="sm"
+                              className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
                             />
                           )}
                         </div>
@@ -317,7 +317,7 @@ const UserPermissionsTable = () => {
                                 handlePermissionChange(user.id, 'product', 'can_edit', checked);
                               }}
                               disabled={!isSpecialAdmin}
-                              size="sm"
+                              className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
                             />
                           )}
                         </div>
@@ -337,7 +337,7 @@ const UserPermissionsTable = () => {
                                 handlePermissionChange(user.id, 'product', 'can_delete', checked);
                               }}
                               disabled={!isSpecialAdmin}
-                              size="sm"
+                              className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
                             />
                           )}
                         </div>
@@ -351,7 +351,7 @@ const UserPermissionsTable = () => {
                                 handlePermissionChange(user.id, 'product', 'can_delete', checked);
                               }}
                               disabled={!isSpecialAdmin}
-                              size="sm"
+                              className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
                             />
                           )}
                         </div>
@@ -371,7 +371,7 @@ const UserPermissionsTable = () => {
                                 handlePermissionChange(user.id, 'product', 'can_add', checked);
                               }}
                               disabled={!isSpecialAdmin}
-                              size="sm"
+                              className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
                             />
                           )}
                         </div>
@@ -385,7 +385,7 @@ const UserPermissionsTable = () => {
                                 handlePermissionChange(user.id, 'product', 'can_add', checked);
                               }}
                               disabled={!isSpecialAdmin}
-                              size="sm"
+                              className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
                             />
                           )}
                         </div>
@@ -405,7 +405,7 @@ const UserPermissionsTable = () => {
                                 handlePermissionChange(user.id, 'pricehist', 'can_edit', checked);
                               }}
                               disabled={!isSpecialAdmin}
-                              size="sm"
+                              className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
                             />
                           )}
                         </div>
@@ -419,7 +419,7 @@ const UserPermissionsTable = () => {
                                 handlePermissionChange(user.id, 'pricehist', 'can_edit', checked);
                               }}
                               disabled={!isSpecialAdmin}
-                              size="sm"
+                              className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
                             />
                           )}
                         </div>
@@ -439,7 +439,7 @@ const UserPermissionsTable = () => {
                                 handlePermissionChange(user.id, 'pricehist', 'can_delete', checked);
                               }}
                               disabled={!isSpecialAdmin}
-                              size="sm"
+                              className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
                             />
                           )}
                         </div>
@@ -453,7 +453,7 @@ const UserPermissionsTable = () => {
                                 handlePermissionChange(user.id, 'pricehist', 'can_delete', checked);
                               }}
                               disabled={!isSpecialAdmin}
-                              size="sm"
+                              className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
                             />
                           )}
                         </div>
@@ -473,7 +473,7 @@ const UserPermissionsTable = () => {
                                 handlePermissionChange(user.id, 'pricehist', 'can_add', checked);
                               }}
                               disabled={!isSpecialAdmin}
-                              size="sm"
+                              className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
                             />
                           )}
                         </div>
@@ -487,7 +487,7 @@ const UserPermissionsTable = () => {
                                 handlePermissionChange(user.id, 'pricehist', 'can_add', checked);
                               }}
                               disabled={!isSpecialAdmin}
-                              size="sm"
+                              className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
                             />
                           )}
                         </div>
