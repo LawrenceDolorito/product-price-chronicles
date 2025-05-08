@@ -79,32 +79,33 @@ const UserManagement = () => {
     try {
       setLoading(true);
       
-      // In a real app, this would be an admin-only API endpoint
-      // For demo purposes, we're using a direct query
-      const { data: usersData, error: usersError } = await supabase
+      // Fetch users from the profiles table
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, email, role, created_at');
         
-      if (usersError) throw usersError;
+      if (profilesError) throw profilesError;
       
       // Ensure the admin email has full privileges
       const adminEmail = "doloritolawrence@gmail.com";
-      let mockUsers = usersData.map((profile: any) => ({
+      
+      // Process profiles data to ensure it has all required fields
+      let processedUsers = (profilesData || []).map((profile: any) => ({
         id: profile.id,
         email: profile.email || `${profile.first_name || 'user'}.${profile.last_name || Date.now().toString().slice(-4)}@example.com`.toLowerCase(),
-        role: profile.email === adminEmail ? "admin" : (profile.role || (Math.random() > 0.7 ? "admin" : "user")),
-        created_at: profile.created_at || new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+        role: profile.email === adminEmail ? "admin" : (profile.role || "user"),
+        created_at: profile.created_at || new Date().toISOString(),
         first_name: profile.first_name || '',
         last_name: profile.last_name || ''
       }));
       
-      // Make sure the specific admin user is present and has admin role
-      const hasAdminUser = mockUsers.some(user => user.email === adminEmail);
+      // Make sure the admin user exists and has admin role
+      const hasAdminUser = processedUsers.some(user => user.email === adminEmail);
       
-      if (!hasAdminUser) {
-        // If the admin user doesn't exist in the fetched data, add it
-        mockUsers.push({
-          id: crypto.randomUUID(),
+      if (!hasAdminUser && user?.email === adminEmail) {
+        // If the admin user doesn't exist in the fetched data but is the current user, add it
+        processedUsers.push({
+          id: user.id,
           email: adminEmail,
           role: "admin",
           created_at: new Date().toISOString(),
@@ -113,13 +114,13 @@ const UserManagement = () => {
         });
       } else {
         // If it exists, make sure it has admin role
-        mockUsers = mockUsers.map(user => 
+        processedUsers = processedUsers.map(user => 
           user.email === adminEmail ? { ...user, role: "admin" } : user
         );
       }
       
-      setUsers(mockUsers);
-      setFilteredUsers(mockUsers);
+      setUsers(processedUsers);
+      setFilteredUsers(processedUsers);
     } catch (error) {
       console.error("Error fetching users:", error);
       toast.error("Failed to load users");
@@ -152,24 +153,48 @@ const UserManagement = () => {
     setIsAddingUser(true);
     
     try {
-      // In a real app, this would call an admin API to create users
-      // For demo purposes, we'll simulate success
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const newId = crypto.randomUUID();
-      const newUserData = {
-        id: newId,
+      // Create the user in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: newUser.email,
-        role: newUser.role,
-        created_at: new Date().toISOString(),
-        first_name: newUser.firstName,
-        last_name: newUser.lastName
-      };
+        password: newUser.password,
+        options: {
+          data: {
+            first_name: newUser.firstName,
+            last_name: newUser.lastName,
+          }
+        }
+      });
       
-      // Update the users state with the new user - this ensures immediate UI update
-      const updatedUsers = [...users, newUserData];
-      setUsers(updatedUsers);
-      setFilteredUsers(updatedUsers);
+      if (authError) throw authError;
+      
+      // Create or update the profile
+      if (authData.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: authData.user.id,
+            first_name: newUser.firstName,
+            last_name: newUser.lastName,
+            email: newUser.email,
+            role: newUser.role
+          });
+          
+        if (profileError) throw profileError;
+        
+        // Add the new user to the local state for immediate UI update
+        const newUserData = {
+          id: authData.user.id,
+          email: newUser.email,
+          role: newUser.role,
+          created_at: new Date().toISOString(),
+          first_name: newUser.firstName,
+          last_name: newUser.lastName
+        };
+        
+        // Update the users state with the new user
+        setUsers(prevUsers => [...prevUsers, newUserData]);
+        setFilteredUsers(prevUsers => [...prevUsers, newUserData]);
+      }
       
       setNewUser({
         email: "",
@@ -181,17 +206,42 @@ const UserManagement = () => {
       
       setDialogOpen(false);
       toast.success("User added successfully!");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding user:", error);
-      toast.error("Failed to add user");
+      toast.error(`Failed to add user: ${error.message || 'Unknown error'}`);
     } finally {
       setIsAddingUser(false);
     }
   };
 
-  const handleEditUser = (id: string) => {
-    // In a real app, this would open an edit dialog
-    toast.info(`Edit user functionality would edit user: ${id}`);
+  const handleEditUser = async (id: string, newRole: string) => {
+    if (!isAuthenticated) {
+      toast.error("You must be logged in to edit users");
+      return;
+    }
+    
+    try {
+      // Update the user role in the database
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role: newRole })
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      // Update local state
+      const updatedUsers = users.map(user => 
+        user.id === id ? { ...user, role: newRole } : user
+      );
+      
+      setUsers(updatedUsers);
+      setFilteredUsers(updatedUsers);
+      
+      toast.success("User role updated successfully!");
+    } catch (error) {
+      console.error("Error updating user:", error);
+      toast.error("Failed to update user role");
+    }
   };
 
   const handleDeleteUser = async (id: string) => {
@@ -201,8 +251,16 @@ const UserManagement = () => {
     }
     
     try {
-      // In a real app, this would call an admin API to delete users
-      // For demo purposes, we'll just update the state
+      // In a real app with proper permissions, you would delete the user using admin APIs
+      // For now, we'll just remove from the profiles table
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      // Update local state by removing the deleted user
       const updatedUsers = users.filter(user => user.id !== id);
       setUsers(updatedUsers);
       setFilteredUsers(updatedUsers);
@@ -215,7 +273,6 @@ const UserManagement = () => {
   };
 
   // Check if the current user is the specified admin
-  // Fix: Access email from user object rather than profile
   const isSpecialAdmin = user?.email === "doloritolawrence@gmail.com";
 
   return (
@@ -394,11 +451,13 @@ const UserManagement = () => {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => handleEditUser(user.id)}
+                        onClick={() => handleEditUser(user.id, user.role === 'admin' ? 'user' : 'admin')}
                         disabled={user.email === "doloritolawrence@gmail.com" && !isSpecialAdmin}
                       >
                         <Pencil size={16} />
-                        <span className="hidden sm:inline ml-1">Edit</span>
+                        <span className="hidden sm:inline ml-1">
+                          {user.role === 'admin' ? 'Make User' : 'Make Admin'}
+                        </span>
                       </Button>
                       <Button 
                         variant="outline" 

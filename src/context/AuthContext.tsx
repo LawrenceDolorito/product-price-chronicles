@@ -10,6 +10,7 @@ type Profile = {
   last_name: string;
   avatar_url?: string;
   role: string;
+  email?: string;
 };
 
 type AuthContextType = {
@@ -73,7 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Use the correct way to query the profiles table with the current types
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, avatar_url, role')
+        .select('id, first_name, last_name, avatar_url, role, email')
         .eq('id', userId)
         .single();
         
@@ -84,6 +85,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (data) {
         setProfile(data as Profile);
+        
+        // Special case: If user is doloritolawrence@gmail.com, ensure they have admin role
+        if (user?.email === "doloritolawrence@gmail.com" && data.role !== 'admin') {
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ role: 'admin' })
+            .eq('id', userId);
+            
+          if (!updateError) {
+            setProfile({ ...data, role: 'admin' } as Profile);
+          }
+        }
         
         // Check if user is blocked and log them out
         if (data.role === 'blocked') {
