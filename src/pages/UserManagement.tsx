@@ -79,25 +79,35 @@ const UserManagement = () => {
     try {
       setLoading(true);
       
-      // Fetch users from the profiles table
+      // Fetch all users from auth.users (this would be done via an admin API in a real app)
+      // For now, we'll use the profiles table which is synced with auth
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, email, role, created_at');
+        .select('*');
         
       if (profilesError) throw profilesError;
       
       // Ensure the admin email has full privileges
       const adminEmail = "doloritolawrence@gmail.com";
       
-      // Process profiles data to ensure it has all required fields
-      let processedUsers = (profilesData || []).map((profile: any) => ({
-        id: profile.id,
-        email: profile.email || `${profile.first_name || 'user'}.${profile.last_name || Date.now().toString().slice(-4)}@example.com`.toLowerCase(),
-        role: profile.email === adminEmail ? "admin" : (profile.role || "user"),
-        created_at: profile.created_at || new Date().toISOString(),
-        first_name: profile.first_name || '',
-        last_name: profile.last_name || ''
-      }));
+      // Get user emails from auth (in real app, would need admin access)
+      // For this demo, we'll use a workaround to link profiles to emails
+      let processedUsers = profilesData.map((profile: any) => {
+        // For the admin user, use the known email
+        const isAdmin = profile.role === 'admin';
+        const email = isAdmin && profile.id === user?.id 
+          ? adminEmail 
+          : profile.email || `${profile.first_name || 'user'}.${profile.last_name || profile.id.slice(-4)}@example.com`.toLowerCase();
+          
+        return {
+          id: profile.id,
+          email: email,
+          role: profile.role || "user",
+          created_at: profile.created_at || new Date().toISOString(),
+          first_name: profile.first_name || '',
+          last_name: profile.last_name || ''
+        };
+      });
       
       // Make sure the admin user exists and has admin role
       const hasAdminUser = processedUsers.some(user => user.email === adminEmail);
@@ -175,7 +185,6 @@ const UserManagement = () => {
             id: authData.user.id,
             first_name: newUser.firstName,
             last_name: newUser.lastName,
-            email: newUser.email,
             role: newUser.role
           });
           
@@ -250,8 +259,15 @@ const UserManagement = () => {
       return;
     }
     
+    // Prevent deletion of the special admin user
+    const targetUser = users.find(user => user.id === id);
+    if (targetUser?.email === "doloritolawrence@gmail.com") {
+      toast.error("Cannot delete the administrator account");
+      return;
+    }
+    
     try {
-      // In a real app with proper permissions, you would delete the user using admin APIs
+      // In a real app with proper permissions, you would use admin APIs to delete the user
       // For now, we'll just remove from the profiles table
       const { error } = await supabase
         .from('profiles')
@@ -464,7 +480,7 @@ const UserManagement = () => {
                         size="sm"
                         className="text-red-500 hover:text-red-700"
                         onClick={() => handleDeleteUser(user.id)}
-                        disabled={user.email === "doloritolawrence@gmail.com" && !isSpecialAdmin}
+                        disabled={user.email === "doloritolawrence@gmail.com" || user.id === profile?.id}
                       >
                         <Trash2 size={16} />
                         <span className="hidden sm:inline ml-1">Delete</span>
