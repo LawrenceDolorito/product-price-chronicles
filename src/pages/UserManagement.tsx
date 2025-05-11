@@ -33,6 +33,9 @@ import {
 } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 
+// Define admin email constant
+const ADMIN_EMAIL = "doloritolawrence@gmail.com";
+
 type User = {
   id: string;
   email: string;
@@ -60,7 +63,7 @@ const UserManagement = () => {
   const navigate = useNavigate();
 
   // Check if current user is admin - strictly check both role and email
-  const isAdmin = profile?.role === 'admin' && (user?.email === "doloritolawrence@gmail.com" || false);
+  const isAdmin = profile?.role === 'admin' && user?.email === ADMIN_EMAIL;
 
   // Redirect non-authenticated users
   useEffect(() => {
@@ -79,8 +82,11 @@ const UserManagement = () => {
   }, [isAuthenticated, profile, navigate]);
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    // Only fetch users if authenticated
+    if (isAuthenticated) {
+      fetchUsers();
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -103,55 +109,27 @@ const UserManagement = () => {
     try {
       setLoading(true);
       
-      // Fetch all users from auth.users (this would be done via an admin API in a real app)
-      // For now, we'll use the profiles table which is synced with auth
+      // Fetch all profiles from Supabase
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('*');
         
       if (profilesError) throw profilesError;
       
-      // Ensure the admin email has full privileges
-      const adminEmail = "doloritolawrence@gmail.com";
-      
-      // Get user emails from auth (in real app, would need admin access)
-      // For this demo, we'll use a workaround to link profiles to emails
-      let processedUsers = profilesData.map((profile: any) => {
-        // For the admin user, use the known email
-        const isAdmin = profile.role === 'admin';
-        const email = isAdmin && profile.id === user?.id 
-          ? adminEmail 
-          : profile.email || `${profile.first_name || 'user'}.${profile.last_name || profile.id.slice(-4)}@example.com`.toLowerCase();
-          
+      // Process the profiles data
+      const processedUsers = profilesData.map((profile: any) => {
+        // For the admin user, ensure we know it's the admin email
+        const isAdminProfile = profile.role === 'admin' && profile.id === user?.id && user?.email === ADMIN_EMAIL;
+        
         return {
           id: profile.id,
-          email: email,
+          email: isAdminProfile ? ADMIN_EMAIL : (profile.email || `user-${profile.id.slice(0, 8)}@example.com`),
           role: profile.role || "user",
           created_at: profile.created_at || new Date().toISOString(),
           first_name: profile.first_name || '',
           last_name: profile.last_name || ''
         };
       });
-      
-      // Make sure the admin user exists and has admin role
-      const hasAdminUser = processedUsers.some(user => user.email === adminEmail);
-      
-      if (!hasAdminUser && user?.email === adminEmail) {
-        // If the admin user doesn't exist in the fetched data but is the current user, add it
-        processedUsers.push({
-          id: user.id,
-          email: adminEmail,
-          role: "admin",
-          created_at: new Date().toISOString(),
-          first_name: "Admin",
-          last_name: "User"
-        });
-      } else {
-        // If it exists, make sure it has admin role
-        processedUsers = processedUsers.map(user => 
-          user.email === adminEmail ? { ...user, role: "admin" } : user
-        );
-      }
       
       setUsers(processedUsers);
       setFilteredUsers(processedUsers);

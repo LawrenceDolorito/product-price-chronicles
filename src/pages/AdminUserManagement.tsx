@@ -22,6 +22,9 @@ import UserRoleTag from "@/components/users/UserRoleTag";
 import UserRoleSelector from "@/components/users/UserRoleSelector";
 import UserPermissionCard from "@/components/users/UserPermissionCard";
 
+// Define admin email constant
+const ADMIN_EMAIL = "doloritolawrence@gmail.com";
+
 type UserPermission = {
   id: string;
   user_id: string;
@@ -67,28 +70,22 @@ const AdminUserManagement = () => {
     }
   }, [isAuthenticated, currentUserRole, navigate]);
 
-  // Strict admin check - only users with admin role can access this page
+  // Strict admin check - only the specific admin email with admin role can access this page
   useEffect(() => {
-    if (isAuthenticated && currentUserRole && currentUserRole !== 'admin') {
-      toast.error('You do not have permission to access this page');
-      navigate('/dashboard');
-      return;
-    }
+    const isAdmin = isAuthenticated && currentUserRole === 'admin' && user?.email === ADMIN_EMAIL;
     
-    // Double check if the user is specifically doloritolawrence@gmail.com
-    // This is an extra security layer for admin pages
-    if (isAuthenticated && user?.email !== "doloritolawrence@gmail.com" && currentUserRole !== 'admin') {
-      toast.error('Only administrators can access this page');
+    if (isAuthenticated && !isAdmin) {
+      toast.error('You do not have permission to access this page');
       navigate('/dashboard');
     }
   }, [isAuthenticated, currentUserRole, user, navigate]);
 
   useEffect(() => {
     // Only fetch users if the current user is authenticated and has admin role
-    if (isAuthenticated && currentUserRole === 'admin') {
+    if (isAuthenticated && currentUserRole === 'admin' && user?.email === ADMIN_EMAIL) {
       fetchUsers();
     }
-  }, [isAuthenticated, currentUserRole]);
+  }, [isAuthenticated, currentUserRole, user]);
 
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -195,7 +192,7 @@ const AdminUserManagement = () => {
     return user?.id === userId;
   };
 
-  const isAdmin = currentUserRole === 'admin';
+  const isAdmin = currentUserRole === 'admin' && user?.email === ADMIN_EMAIL;
 
   // If not admin, show access denied message instead of trying to render the admin UI
   if (!isAdmin) {

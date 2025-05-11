@@ -15,6 +15,9 @@ import AdminUserManagement from "./pages/AdminUserManagement";
 import UserPermissionsTable from "./pages/UserPermissionsTable";
 import NotFound from "./pages/NotFound";
 
+// Define admin email constant
+const ADMIN_EMAIL = "doloritolawrence@gmail.com";
+
 const queryClient = new QueryClient();
 
 // Protected route component
@@ -32,9 +35,9 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   return children;
 };
 
-// Admin route component
+// Admin route component - STRICT admin check with email
 const AdminRoute = ({ children }: { children: JSX.Element }) => {
-  const { isAuthenticated, isLoading, profile } = useAuth();
+  const { isAuthenticated, isLoading, profile, user } = useAuth();
   
   if (isLoading) {
     return <div>Loading...</div>;
@@ -44,7 +47,8 @@ const AdminRoute = ({ children }: { children: JSX.Element }) => {
     return <Navigate to="/login" />;
   }
   
-  if (profile?.role !== 'admin') {
+  // Strict admin check - both role AND email must match
+  if (profile?.role !== 'admin' || user?.email !== ADMIN_EMAIL) {
     return <Navigate to="/dashboard" />;
   }
   

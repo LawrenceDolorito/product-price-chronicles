@@ -25,6 +25,9 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Define the admin email as a constant to ensure consistency
+const ADMIN_EMAIL = "doloritolawrence@gmail.com";
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -91,22 +94,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         
         // Special case: If user is doloritolawrence@gmail.com, ensure they have admin role
-        if (user?.email === "doloritolawrence@gmail.com" && data.role !== 'admin') {
-          console.log("Setting admin role for doloritolawrence@gmail.com");
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ role: 'admin' })
-            .eq('id', userId);
-            
-          if (!updateError) {
-            setProfile({ ...profileWithEmail, role: 'admin' });
-          } else {
-            console.error("Error updating profile to admin:", updateError);
-            // Still set to admin in the frontend even if backend update fails
-            setProfile({ ...profileWithEmail, role: 'admin' });
+        if (user?.email === ADMIN_EMAIL) {
+          console.log(`Setting admin role for ${ADMIN_EMAIL}`);
+          
+          if (data.role !== 'admin') {
+            const { error: updateError } = await supabase
+              .from('profiles')
+              .update({ role: 'admin' })
+              .eq('id', userId);
+              
+            if (updateError) {
+              console.error("Error updating profile to admin:", updateError);
+            }
           }
+          
+          // Always set admin role in the frontend
+          setProfile({ ...profileWithEmail, role: 'admin' });
         } else {
-          setProfile(profileWithEmail);
+          // For all other users, ensure they are NOT admins
+          if (data.role === 'admin' && user?.email !== ADMIN_EMAIL) {
+            console.log("Correcting non-admin user with admin role:", user?.email);
+            const { error: updateError } = await supabase
+              .from('profiles')
+              .update({ role: 'user' })
+              .eq('id', userId);
+              
+            if (updateError) {
+              console.error("Error updating profile from admin to user:", updateError);
+            }
+            
+            // Set user role in the frontend
+            setProfile({ ...profileWithEmail, role: 'user' });
+          } else {
+            // Use the role from the database
+            setProfile(profileWithEmail);
+          }
         }
         
         // Check if user is blocked and log them out
@@ -142,8 +164,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
 
-      // Special case for doloritolawrence@gmail.com
-      if (data.user && data.user.email === "doloritolawrence@gmail.com") {
+      // Special case for ADMIN_EMAIL
+      if (data.user && data.user.email === ADMIN_EMAIL) {
         // Check if profile exists first
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
@@ -162,7 +184,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (updateError) {
               console.error("Error updating admin role:", updateError);
             } else {
-              console.log("Admin role updated for doloritolawrence@gmail.com");
+              console.log(`Admin role updated for ${ADMIN_EMAIL}`);
             }
           }
         } else {
@@ -179,13 +201,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (insertError) {
             console.error("Error creating admin profile:", insertError);
           } else {
-            console.log("Admin profile created for doloritolawrence@gmail.com");
+            console.log(`Admin profile created for ${ADMIN_EMAIL}`);
+          }
+        }
+      } else if (data.user) {
+        // For non-admin users, make sure they don't have admin role
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single();
+          
+        if (!profileError && profileData && profileData.role === 'admin' && data.user.email !== ADMIN_EMAIL) {
+          // If a non-admin email has admin role, update it to user
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ role: 'user' })
+            .eq('id', data.user.id);
+            
+          if (updateError) {
+            console.error("Error updating non-admin user role:", updateError);
+          } else {
+            console.log(`User role corrected for ${data.user.email}`);
           }
         }
       }
 
-      // Check if the user is blocked (for non-admin users)
-      if (data.user && data.user.email !== "doloritolawrence@gmail.com") {
+      // Check if the user is blocked (for all users)
+      if (data.user) {
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('role')

@@ -5,6 +5,9 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Package, User, LogOut, BarChart2, Users, Shield } from "lucide-react";
 
+// Define admin email constant
+const ADMIN_EMAIL = "doloritolawrence@gmail.com";
+
 const Navbar: React.FC = () => {
   const { user, profile, logout } = useAuth();
   const navigate = useNavigate();
@@ -14,7 +17,8 @@ const Navbar: React.FC = () => {
     navigate("/login");
   };
 
-  const isAdmin = profile?.role === 'admin';
+  // Strict admin check - both role and email must match
+  const isAdmin = profile?.role === 'admin' && user?.email === ADMIN_EMAIL;
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
