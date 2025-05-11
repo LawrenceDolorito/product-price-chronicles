@@ -90,10 +90,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email: user?.email
         };
         
-        setProfile(profileWithEmail);
-        
         // Special case: If user is doloritolawrence@gmail.com, ensure they have admin role
         if (user?.email === "doloritolawrence@gmail.com" && data.role !== 'admin') {
+          console.log("Setting admin role for doloritolawrence@gmail.com");
           const { error: updateError } = await supabase
             .from('profiles')
             .update({ role: 'admin' })
@@ -101,7 +100,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             
           if (!updateError) {
             setProfile({ ...profileWithEmail, role: 'admin' });
+          } else {
+            console.error("Error updating profile to admin:", updateError);
+            // Still set to admin in the frontend even if backend update fails
+            setProfile({ ...profileWithEmail, role: 'admin' });
           }
+        } else {
+          setProfile(profileWithEmail);
         }
         
         // Check if user is blocked and log them out
@@ -137,8 +142,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
 
-      // Check if the user is blocked
-      if (data.user) {
+      // Special case for doloritolawrence@gmail.com
+      if (data.user && data.user.email === "doloritolawrence@gmail.com") {
+        // Check if profile exists first
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single();
+          
+        if (!profileError && profileData) {
+          // If profile exists but role is not admin, update it
+          if (profileData.role !== 'admin') {
+            const { error: updateError } = await supabase
+              .from('profiles')
+              .update({ role: 'admin' })
+              .eq('id', data.user.id);
+              
+            if (updateError) {
+              console.error("Error updating admin role:", updateError);
+            } else {
+              console.log("Admin role updated for doloritolawrence@gmail.com");
+            }
+          }
+        } else {
+          // If profile doesn't exist, create it with admin role
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert({
+              id: data.user.id,
+              first_name: "Admin",
+              last_name: "User",
+              role: 'admin'
+            });
+            
+          if (insertError) {
+            console.error("Error creating admin profile:", insertError);
+          } else {
+            console.log("Admin profile created for doloritolawrence@gmail.com");
+          }
+        }
+      }
+
+      // Check if the user is blocked (for non-admin users)
+      if (data.user && data.user.email !== "doloritolawrence@gmail.com") {
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('role')
