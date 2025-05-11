@@ -7,7 +7,7 @@ import {
   Table, TableBody, TableCaption, TableCell, 
   TableHead, TableHeader, TableRow 
 } from "@/components/ui/table";
-import { Loader2, PlusCircle, Search, UserPlus, Pencil, Trash2, Shield } from "lucide-react";
+import { Loader2, Search, Users, UserPlus, Pencil, Trash2, Shield } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -53,6 +53,9 @@ const UserManagement = () => {
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const { isAuthenticated, profile, user } = useAuth();
+
+  // Check if current user is admin
+  const isAdmin = profile?.role === 'admin';
 
   useEffect(() => {
     fetchUsers();
@@ -224,8 +227,8 @@ const UserManagement = () => {
   };
 
   const handleEditUser = async (id: string, newRole: string) => {
-    if (!isAuthenticated) {
-      toast.error("You must be logged in to edit users");
+    if (!isAuthenticated || !isAdmin) {
+      toast.error("You must be an admin to edit users");
       return;
     }
     
@@ -254,8 +257,8 @@ const UserManagement = () => {
   };
 
   const handleDeleteUser = async (id: string) => {
-    if (!isAuthenticated) {
-      toast.error("You must be logged in to delete users");
+    if (!isAuthenticated || !isAdmin) {
+      toast.error("You must be an admin to delete users");
       return;
     }
     
@@ -291,6 +294,48 @@ const UserManagement = () => {
   // Check if the current user is the specified admin
   const isSpecialAdmin = user?.email === "doloritolawrence@gmail.com";
 
+  // Simple view for non-admin users - just show names
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        
+        <main className="container mx-auto px-4 py-8">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">Users Directory</h1>
+            <p className="text-gray-600 mt-1">
+              View all users in the system
+            </p>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow">
+            <div className="p-6">
+              <div className="flex items-center mb-4">
+                <Users className="h-5 w-5 mr-2 text-primary" />
+                <h2 className="text-lg font-medium">User List</h2>
+              </div>
+              
+              {loading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : (
+                <ul className="space-y-2">
+                  {filteredUsers.map((user) => (
+                    <li key={user.id} className="py-2 border-b border-gray-100 last:border-0">
+                      {user.first_name} {user.last_name}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Full admin view with all features
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
