@@ -30,6 +30,8 @@ type UserPermission = {
   can_add: boolean;
   can_edit: boolean;
   can_delete: boolean;
+  created_at: string;
+  updated_at: string;
 };
 
 type User = {
@@ -119,13 +121,17 @@ const AdminUserManagement = () => {
         // Default permissions to false if not found
         if (userPermissions.length === 0 && profile.role !== 'admin') {
           // For non-admin users, create default "NO" permissions
+          const currentTime = new Date().toISOString();
+          
           const defaultProductPermissions = {
             id: `default-product-${profile.id}`,
             user_id: profile.id,
             table_name: 'product',
             can_add: false,
             can_edit: false,
-            can_delete: false
+            can_delete: false,
+            created_at: currentTime,
+            updated_at: currentTime
           };
           
           const defaultPriceHistPermissions = {
@@ -134,7 +140,9 @@ const AdminUserManagement = () => {
             table_name: 'pricehist',
             can_add: false,
             can_edit: false,
-            can_delete: false
+            can_delete: false,
+            created_at: currentTime,
+            updated_at: currentTime
           };
           
           userPermissions.push(defaultProductPermissions, defaultPriceHistPermissions);
