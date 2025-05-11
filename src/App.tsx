@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -47,11 +46,18 @@ const AdminRoute = ({ children }: { children: JSX.Element }) => {
     return <Navigate to="/login" />;
   }
   
+  console.log("Admin route check - Email:", user?.email);
+  console.log("Admin route check - Role:", profile?.role);
+  console.log("Admin route check - Expected admin email:", ADMIN_EMAIL);
+  console.log("Admin route check - Is admin?", profile?.role === 'admin' && user?.email === ADMIN_EMAIL);
+  
   // Strict admin check - both role AND email must match
   if (profile?.role !== 'admin' || user?.email !== ADMIN_EMAIL) {
+    console.log("Admin access denied - redirecting to dashboard");
     return <Navigate to="/dashboard" />;
   }
   
+  console.log("Admin access granted");
   return children;
 };
 

@@ -65,6 +65,10 @@ const UserManagement = () => {
   // Check if current user is admin - strictly check both role and email
   const isAdmin = profile?.role === 'admin' && user?.email === ADMIN_EMAIL;
 
+  console.log("UserManagement - User email:", user?.email);
+  console.log("UserManagement - User role:", profile?.role);
+  console.log("UserManagement - isAdmin check:", isAdmin);
+
   // Redirect non-authenticated users
   useEffect(() => {
     if (!isAuthenticated) {

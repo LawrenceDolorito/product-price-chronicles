@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -55,10 +56,15 @@ const AdminUserManagement = () => {
   const navigate = useNavigate();
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
 
+  console.log("AdminUserManagement - Current user:", user?.email);
+  console.log("AdminUserManagement - User role from profile:", profile?.role);
+  console.log("AdminUserManagement - Admin email:", ADMIN_EMAIL);
+
   // Update current user role when profile changes
   useEffect(() => {
     if (profile) {
       setCurrentUserRole(profile.role);
+      console.log("Setting current user role:", profile.role);
     }
   }, [profile]);
 
@@ -73,6 +79,7 @@ const AdminUserManagement = () => {
   // Strict admin check - only the specific admin email with admin role can access this page
   useEffect(() => {
     const isAdmin = isAuthenticated && currentUserRole === 'admin' && user?.email === ADMIN_EMAIL;
+    console.log("Admin check result:", isAdmin);
     
     if (isAuthenticated && !isAdmin) {
       toast.error('You do not have permission to access this page');

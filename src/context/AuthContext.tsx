@@ -74,6 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = async (userId: string) => {
     try {
+      console.log("Fetching profile for user ID:", userId);
       // Remove email from the select query since it doesn't exist in the profiles table
       const { data, error } = await supabase
         .from('profiles')
@@ -87,6 +88,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       if (data) {
+        // Check if the user is our special admin user by email
+        const isSpecialAdmin = user?.email === ADMIN_EMAIL;
+        console.log("User email:", user?.email);
+        console.log("Is special admin?", isSpecialAdmin);
+        console.log("Current role from DB:", data.role);
+        
         // Add email from the auth user data instead of from profiles table
         const profileWithEmail: Profile = {
           ...data,
@@ -94,10 +101,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         
         // Special case: If user is doloritolawrence@gmail.com, ensure they have admin role
-        if (user?.email === ADMIN_EMAIL) {
+        if (isSpecialAdmin) {
           console.log(`Setting admin role for ${ADMIN_EMAIL}`);
           
           if (data.role !== 'admin') {
+            console.log("Updating role to admin in database");
             const { error: updateError } = await supabase
               .from('profiles')
               .update({ role: 'admin' })
@@ -109,6 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           
           // Always set admin role in the frontend
+          console.log("Setting profile with admin role in the app state");
           setProfile({ ...profileWithEmail, role: 'admin' });
         } else {
           // For all other users, ensure they are NOT admins
@@ -127,6 +136,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setProfile({ ...profileWithEmail, role: 'user' });
           } else {
             // Use the role from the database
+            console.log("Setting normal user profile:", profileWithEmail);
             setProfile(profileWithEmail);
           }
         }
@@ -164,6 +174,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
 
+      console.log("Login successful for:", email);
+      console.log("Admin email is:", ADMIN_EMAIL);
+      console.log("Is admin login?", email === ADMIN_EMAIL);
+
       // Special case for ADMIN_EMAIL
       if (data.user && data.user.email === ADMIN_EMAIL) {
         // Check if profile exists first
@@ -176,6 +190,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!profileError && profileData) {
           // If profile exists but role is not admin, update it
           if (profileData.role !== 'admin') {
+            console.log(`Updating ${email} to admin role in database`);
             const { error: updateError } = await supabase
               .from('profiles')
               .update({ role: 'admin' })
@@ -189,6 +204,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         } else {
           // If profile doesn't exist, create it with admin role
+          console.log(`Creating new admin profile for ${email}`);
           const { error: insertError } = await supabase
             .from('profiles')
             .insert({
@@ -214,6 +230,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           
         if (!profileError && profileData && profileData.role === 'admin' && data.user.email !== ADMIN_EMAIL) {
           // If a non-admin email has admin role, update it to user
+          console.log(`Removing admin privileges from ${data.user.email}`);
           const { error: updateError } = await supabase
             .from('profiles')
             .update({ role: 'user' })
