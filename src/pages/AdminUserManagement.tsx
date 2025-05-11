@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -53,12 +52,14 @@ const AdminUserManagement = () => {
   const navigate = useNavigate();
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
 
+  // Update current user role when profile changes
   useEffect(() => {
     if (profile) {
       setCurrentUserRole(profile.role);
     }
   }, [profile]);
 
+  // Redirect blocked users to login
   useEffect(() => {
     if (isAuthenticated && currentUserRole === 'blocked') {
       toast.error('Your account has been blocked. Please contact an administrator.');
@@ -66,16 +67,28 @@ const AdminUserManagement = () => {
     }
   }, [isAuthenticated, currentUserRole, navigate]);
 
+  // Strict admin check - only users with admin role can access this page
   useEffect(() => {
     if (isAuthenticated && currentUserRole && currentUserRole !== 'admin') {
       toast.error('You do not have permission to access this page');
       navigate('/dashboard');
+      return;
     }
-  }, [isAuthenticated, currentUserRole, navigate]);
+    
+    // Double check if the user is specifically doloritolawrence@gmail.com
+    // This is an extra security layer for admin pages
+    if (isAuthenticated && user?.email !== "doloritolawrence@gmail.com" && currentUserRole !== 'admin') {
+      toast.error('Only administrators can access this page');
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, currentUserRole, user, navigate]);
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    // Only fetch users if the current user is authenticated and has admin role
+    if (isAuthenticated && currentUserRole === 'admin') {
+      fetchUsers();
+    }
+  }, [isAuthenticated, currentUserRole]);
 
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -183,6 +196,31 @@ const AdminUserManagement = () => {
   };
 
   const isAdmin = currentUserRole === 'admin';
+
+  // If not admin, show access denied message instead of trying to render the admin UI
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <main className="container mx-auto px-4 py-12">
+          <Card className="max-w-md mx-auto">
+            <CardHeader>
+              <CardTitle className="text-red-500">Access Denied</CardTitle>
+              <CardDescription>
+                You don't have permission to access the admin panel.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4">This page is restricted to administrators only.</p>
+              <Button onClick={() => navigate('/dashboard')}>
+                Return to Dashboard
+              </Button>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

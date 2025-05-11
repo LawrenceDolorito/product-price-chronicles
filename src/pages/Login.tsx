@@ -40,8 +40,16 @@ const Login = () => {
 
   // Redirect if already authenticated and not blocked
   useEffect(() => {
-    if (isAuthenticated && profile && profile.role !== 'blocked') {
-      navigate("/dashboard");
+    if (isAuthenticated && profile) {
+      if (profile.role === 'blocked') {
+        // Stay on login page with blocked message
+      } else if (profile.role === 'admin') {
+        // Admin goes to admin panel
+        navigate("/admin/user-management");
+      } else {
+        // Regular users go to dashboard
+        navigate("/dashboard");
+      }
     }
   }, [isAuthenticated, profile, navigate]);
   
@@ -52,7 +60,8 @@ const Login = () => {
     try {
       const success = await login(loginEmail, loginPassword);
       if (success) {
-        navigate("/dashboard");
+        // Login will trigger the useEffect above which will handle redirection
+        // based on user role
       }
     } catch (error) {
       console.error("Login error:", error);

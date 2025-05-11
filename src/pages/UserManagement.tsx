@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -28,6 +27,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+} from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
 
 type User = {
   id: string;
@@ -53,9 +57,26 @@ const UserManagement = () => {
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const { isAuthenticated, profile, user } = useAuth();
+  const navigate = useNavigate();
 
-  // Check if current user is admin
-  const isAdmin = profile?.role === 'admin';
+  // Check if current user is admin - strictly check both role and email
+  const isAdmin = profile?.role === 'admin' && (user?.email === "doloritolawrence@gmail.com" || false);
+
+  // Redirect non-authenticated users
+  useEffect(() => {
+    if (!isAuthenticated) {
+      toast.error('You must be logged in to view this page');
+      navigate('/login');
+    }
+  }, [isAuthenticated, navigate]);
+
+  // Redirect blocked users
+  useEffect(() => {
+    if (isAuthenticated && profile?.role === 'blocked') {
+      toast.error('Your account has been blocked. Please contact an administrator.');
+      navigate('/login');
+    }
+  }, [isAuthenticated, profile, navigate]);
 
   useEffect(() => {
     fetchUsers();
@@ -157,9 +178,9 @@ const UserManagement = () => {
       return;
     }
     
-    // Validate form
-    if (!newUser.email || !newUser.password || !newUser.firstName || !newUser.lastName) {
-      toast.error("Please fill in all required fields");
+    // Only admin can add users
+    if (!isAdmin) {
+      toast.error("You don't have permission to add users");
       return;
     }
     
