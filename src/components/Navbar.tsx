@@ -82,16 +82,15 @@ const Navbar: React.FC = () => {
               >
                 <Users size={18} className="mr-2" /> Users
               </Button>
-              {user.email === ADMIN_EMAIL && (
-                <Button
-                  onClick={() => navigate("/admin/user-management")}
-                  variant="ghost"
-                  size="sm"
-                  className="text-gray-600"
-                >
-                  <Shield size={18} className="mr-2" /> Manage Users
-                </Button>
-              )}
+              {/* Make Manage Users tab visible to all users */}
+              <Button
+                onClick={() => navigate("/admin/user-management")}
+                variant="ghost"
+                size="sm"
+                className="text-gray-600"
+              >
+                <Shield size={18} className="mr-2" /> Manage Users
+              </Button>
               <Button
                 onClick={handleLogout}
                 variant="ghost"

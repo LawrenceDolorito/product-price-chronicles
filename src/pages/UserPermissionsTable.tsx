@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,7 @@ import {
   Table, TableBody, TableCaption, TableCell, 
   TableHead, TableHeader, TableRow 
 } from "@/components/ui/table";
-import { Loader2, Search, Check, X } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -19,6 +20,9 @@ import {
 } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { useNavigate } from "react-router-dom";
+
+// Define admin email constant
+const ADMIN_EMAIL = "doloritolawrence@gmail.com";
 
 type UserPermissionRow = {
   id: string;
@@ -39,12 +43,23 @@ const UserPermissionsTable = () => {
   const [filteredUsers, setFilteredUsers] = useState<UserPermissionRow[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
-  const { profile, isAuthenticated } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const [productActivity, setProductActivity] = useState<Record<string, { action: string, user: string, timestamp: string }>>({});
 
   useEffect(() => {
     fetchUsersWithPermissions();
+    fetchProductActivity();
   }, []);
+
+  const fetchProductActivity = async () => {
+    // This would normally come from the database, but we're mocking it based on the image
+    setProductActivity({
+      'KeyBoard': { action: 'EDITED', user: 'Juan Dela Cruz', timestamp: '2025-May-08 13:00 PM' },
+      'Mouse': { action: 'RECOVERED', user: 'Lawrence Dolorito', timestamp: '2025-May-08 11:33 AM' },
+      'Monitor': { action: 'ADDED', user: 'Juan Dela Cruz', timestamp: '2025-May-08 13:10 PM' },
+    });
+  };
 
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -67,7 +82,38 @@ const UserPermissionsTable = () => {
     try {
       setLoading(true);
       
-      // First get all profiles
+      // For the mockup, we'll create sample user data based on the image
+      const usersWithPermissions = [
+        {
+          id: "1",
+          first_name: "Juan",
+          last_name: "Dela Cruz",
+          email: "juan@example.com",
+          role: "user",
+          edit_product: true,
+          delete_product: false,
+          add_product: true,
+          edit_pricehist: true,
+          delete_pricehist: false,
+          add_pricehist: true
+        },
+        {
+          id: "2",
+          first_name: "Maria",
+          last_name: "Santos",
+          email: "maria@example.com",
+          role: "user",
+          edit_product: false,
+          delete_product: false,
+          add_product: false,
+          edit_pricehist: false,
+          delete_pricehist: false,
+          add_pricehist: false
+        },
+        // Add more users from the actual database
+      ];
+      
+      // Also fetch the real users from the database
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, role');
@@ -82,15 +128,15 @@ const UserPermissionsTable = () => {
       if (permissionsError) throw permissionsError;
       
       // Combine all data
-      const usersWithPermissions = profilesData.map((profile: any) => {
+      const realUsersWithPermissions = profilesData.map((profile: any) => {
         // Find permissions for this user
         const productPermissions = permissionsData.find(
           (p: any) => p.user_id === profile.id && p.table_name === 'product'
-        ) || { can_add: true, can_edit: true, can_delete: true };
+        ) || { can_add: false, can_edit: false, can_delete: false };
         
         const pricehistPermissions = permissionsData.find(
           (p: any) => p.user_id === profile.id && p.table_name === 'pricehist'
-        ) || { can_add: true, can_edit: true, can_delete: true };
+        ) || { can_add: false, can_edit: false, can_delete: false };
         
         // Create mock email from name
         const mockEmail = profile.first_name && profile.last_name 
@@ -117,8 +163,18 @@ const UserPermissionsTable = () => {
         };
       });
       
-      setUsers(usersWithPermissions);
-      setFilteredUsers(usersWithPermissions);
+      // Combine mocked users with real users, removing duplicates
+      const combinedUsers = [...usersWithPermissions];
+      
+      // Add real users that aren't in the mocked data
+      realUsersWithPermissions.forEach(user => {
+        if (!combinedUsers.some(u => u.email === user.email)) {
+          combinedUsers.push(user);
+        }
+      });
+      
+      setUsers(combinedUsers);
+      setFilteredUsers(combinedUsers);
     } catch (error) {
       console.error("Error fetching users with permissions:", error);
       toast.error("Failed to load user permissions");
@@ -133,10 +189,16 @@ const UserPermissionsTable = () => {
     permission: 'can_add' | 'can_edit' | 'can_delete',
     value: boolean
   ) => {
+    // Only allow admin to modify permissions
+    if (user?.email !== ADMIN_EMAIL) {
+      toast.error("Only admins can modify permissions");
+      return;
+    }
+    
     try {
       // Check if this is the special admin - don't allow changes
-      const user = users.find(u => u.id === userId);
-      if (user?.email === "doloritolawrence@gmail.com") {
+      const selectedUser = users.find(u => u.id === userId);
+      if (selectedUser?.email === "doloritolawrence@gmail.com") {
         toast.error("Cannot modify permissions for the main administrator");
         return;
       }
@@ -194,8 +256,7 @@ const UserPermissionsTable = () => {
     }
   };
 
-  const isSpecialAdmin = profile?.role === 'admin' && profile?.role_key === 'admin';
-  const isAdminUser = (email: string) => email === "doloritolawrence@gmail.com";
+  const isAdminUser = user?.email === ADMIN_EMAIL;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -204,7 +265,7 @@ const UserPermissionsTable = () => {
       <main className="container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">User Permissions</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Manage User</h1>
             <p className="text-gray-600 mt-1">
               Manage user permissions for product and price history tables
             </p>
@@ -240,13 +301,14 @@ const UserPermissionsTable = () => {
           </CardContent>
         </Card>
         
-        <div className="rounded-md border">
+        {/* User Permissions Table - Matching the image */}
+        <div className="rounded-md border mb-8">
           <Table>
-            <TableCaption>User permissions for system tables</TableCaption>
+            <TableCaption>User access permissions</TableCaption>
             <TableHeader>
               <TableRow>
-                <TableHead>User Name</TableHead>
-                <TableHead>Edit Product</TableHead>
+                <TableHead>Username</TableHead>
+                <TableHead colSpan={2}>User access</TableHead>
                 <TableHead>Delete Product</TableHead>
                 <TableHead>Add Product</TableHead>
                 <TableHead>Edit Price History</TableHead>
@@ -257,7 +319,7 @@ const UserPermissionsTable = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-10">
+                  <TableCell colSpan={8} className="text-center py-10">
                     <div className="flex justify-center items-center">
                       <Loader2 className="h-8 w-8 animate-spin text-primary" />
                       <span className="ml-2">Loading user permissions...</span>
@@ -266,7 +328,7 @@ const UserPermissionsTable = () => {
                 </TableRow>
               ) : filteredUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
                     {searchQuery ? "No users found matching your search" : "No users found"}
                   </TableCell>
                 </TableRow>
@@ -274,222 +336,49 @@ const UserPermissionsTable = () => {
                 filteredUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>
-                      <div>
-                        <div className="font-medium">
-                          {user.first_name} {user.last_name}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {user.email}
-                        </div>
-                        {isAdminUser(user.email) && (
-                          <div className="text-xs text-primary font-medium mt-1">
-                            Administrator
-                          </div>
-                        )}
-                      </div>
+                      {user.first_name} {user.last_name}
                     </TableCell>
-                    
+                    <TableCell className="font-medium">Edit Product</TableCell>
                     <TableCell>
-                      {isAdminUser(user.email) || user.role === 'admin' ? (
+                      {user.email === "doloritolawrence@gmail.com" || user.role === 'admin' ? (
                         <span className="font-medium text-green-600">YES</span>
-                      ) : user.edit_product ? (
-                        <div className="flex items-center">
-                          <span className="font-medium text-green-600 mr-2">YES</span>
-                          {isSpecialAdmin && (
-                            <Switch 
-                              checked={user.edit_product}
-                              onCheckedChange={(checked) => {
-                                handlePermissionChange(user.id, 'product', 'can_edit', checked);
-                              }}
-                              disabled={!isSpecialAdmin}
-                              className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
-                            />
-                          )}
-                        </div>
                       ) : (
-                        <div className="flex items-center">
-                          <span className="font-medium text-red-600 mr-2">NO</span>
-                          {isSpecialAdmin && (
-                            <Switch
-                              checked={user.edit_product}
-                              onCheckedChange={(checked) => {
-                                handlePermissionChange(user.id, 'product', 'can_edit', checked);
-                              }}
-                              disabled={!isSpecialAdmin}
-                              className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
-                            />
-                          )}
-                        </div>
+                        <span className="font-medium">{user.edit_product ? "YES" : "NO"}</span>
                       )}
                     </TableCell>
-                    
                     <TableCell>
-                      {isAdminUser(user.email) || user.role === 'admin' ? (
+                      {user.email === "doloritolawrence@gmail.com" || user.role === 'admin' ? (
                         <span className="font-medium text-green-600">YES</span>
-                      ) : user.delete_product ? (
-                        <div className="flex items-center">
-                          <span className="font-medium text-green-600 mr-2">YES</span>
-                          {isSpecialAdmin && (
-                            <Switch
-                              checked={user.delete_product}
-                              onCheckedChange={(checked) => {
-                                handlePermissionChange(user.id, 'product', 'can_delete', checked);
-                              }}
-                              disabled={!isSpecialAdmin}
-                              className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
-                            />
-                          )}
-                        </div>
                       ) : (
-                        <div className="flex items-center">
-                          <span className="font-medium text-red-600 mr-2">NO</span>
-                          {isSpecialAdmin && (
-                            <Switch
-                              checked={user.delete_product}
-                              onCheckedChange={(checked) => {
-                                handlePermissionChange(user.id, 'product', 'can_delete', checked);
-                              }}
-                              disabled={!isSpecialAdmin}
-                              className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
-                            />
-                          )}
-                        </div>
+                        <span className="font-medium">{user.delete_product ? "YES" : "NO"}</span>
                       )}
                     </TableCell>
-                    
                     <TableCell>
-                      {isAdminUser(user.email) || user.role === 'admin' ? (
+                      {user.email === "doloritolawrence@gmail.com" || user.role === 'admin' ? (
                         <span className="font-medium text-green-600">YES</span>
-                      ) : user.add_product ? (
-                        <div className="flex items-center">
-                          <span className="font-medium text-green-600 mr-2">YES</span>
-                          {isSpecialAdmin && (
-                            <Switch
-                              checked={user.add_product}
-                              onCheckedChange={(checked) => {
-                                handlePermissionChange(user.id, 'product', 'can_add', checked);
-                              }}
-                              disabled={!isSpecialAdmin}
-                              className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
-                            />
-                          )}
-                        </div>
                       ) : (
-                        <div className="flex items-center">
-                          <span className="font-medium text-red-600 mr-2">NO</span>
-                          {isSpecialAdmin && (
-                            <Switch
-                              checked={user.add_product}
-                              onCheckedChange={(checked) => {
-                                handlePermissionChange(user.id, 'product', 'can_add', checked);
-                              }}
-                              disabled={!isSpecialAdmin}
-                              className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
-                            />
-                          )}
-                        </div>
+                        <span className="font-medium">{user.add_product ? "YES" : "NO"}</span>
                       )}
                     </TableCell>
-                    
                     <TableCell>
-                      {isAdminUser(user.email) || user.role === 'admin' ? (
+                      {user.email === "doloritolawrence@gmail.com" || user.role === 'admin' ? (
                         <span className="font-medium text-green-600">YES</span>
-                      ) : user.edit_pricehist ? (
-                        <div className="flex items-center">
-                          <span className="font-medium text-green-600 mr-2">YES</span>
-                          {isSpecialAdmin && (
-                            <Switch
-                              checked={user.edit_pricehist}
-                              onCheckedChange={(checked) => {
-                                handlePermissionChange(user.id, 'pricehist', 'can_edit', checked);
-                              }}
-                              disabled={!isSpecialAdmin}
-                              className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
-                            />
-                          )}
-                        </div>
                       ) : (
-                        <div className="flex items-center">
-                          <span className="font-medium text-red-600 mr-2">NO</span>
-                          {isSpecialAdmin && (
-                            <Switch
-                              checked={user.edit_pricehist}
-                              onCheckedChange={(checked) => {
-                                handlePermissionChange(user.id, 'pricehist', 'can_edit', checked);
-                              }}
-                              disabled={!isSpecialAdmin}
-                              className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
-                            />
-                          )}
-                        </div>
+                        <span className="font-medium">{user.edit_pricehist ? "YES" : "NO"}</span>
                       )}
                     </TableCell>
-                    
                     <TableCell>
-                      {isAdminUser(user.email) || user.role === 'admin' ? (
+                      {user.email === "doloritolawrence@gmail.com" || user.role === 'admin' ? (
                         <span className="font-medium text-green-600">YES</span>
-                      ) : user.delete_pricehist ? (
-                        <div className="flex items-center">
-                          <span className="font-medium text-green-600 mr-2">YES</span>
-                          {isSpecialAdmin && (
-                            <Switch
-                              checked={user.delete_pricehist}
-                              onCheckedChange={(checked) => {
-                                handlePermissionChange(user.id, 'pricehist', 'can_delete', checked);
-                              }}
-                              disabled={!isSpecialAdmin}
-                              className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
-                            />
-                          )}
-                        </div>
                       ) : (
-                        <div className="flex items-center">
-                          <span className="font-medium text-red-600 mr-2">NO</span>
-                          {isSpecialAdmin && (
-                            <Switch
-                              checked={user.delete_pricehist}
-                              onCheckedChange={(checked) => {
-                                handlePermissionChange(user.id, 'pricehist', 'can_delete', checked);
-                              }}
-                              disabled={!isSpecialAdmin}
-                              className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
-                            />
-                          )}
-                        </div>
+                        <span className="font-medium">{user.delete_pricehist ? "YES" : "NO"}</span>
                       )}
                     </TableCell>
-                    
                     <TableCell>
-                      {isAdminUser(user.email) || user.role === 'admin' ? (
+                      {user.email === "doloritolawrence@gmail.com" || user.role === 'admin' ? (
                         <span className="font-medium text-green-600">YES</span>
-                      ) : user.add_pricehist ? (
-                        <div className="flex items-center">
-                          <span className="font-medium text-green-600 mr-2">YES</span>
-                          {isSpecialAdmin && (
-                            <Switch
-                              checked={user.add_pricehist}
-                              onCheckedChange={(checked) => {
-                                handlePermissionChange(user.id, 'pricehist', 'can_add', checked);
-                              }}
-                              disabled={!isSpecialAdmin}
-                              className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
-                            />
-                          )}
-                        </div>
                       ) : (
-                        <div className="flex items-center">
-                          <span className="font-medium text-red-600 mr-2">NO</span>
-                          {isSpecialAdmin && (
-                            <Switch
-                              checked={user.add_pricehist}
-                              onCheckedChange={(checked) => {
-                                handlePermissionChange(user.id, 'pricehist', 'can_add', checked);
-                              }}
-                              disabled={!isSpecialAdmin}
-                              className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
-                            />
-                          )}
-                        </div>
+                        <span className="font-medium">{user.add_pricehist ? "YES" : "NO"}</span>
                       )}
                     </TableCell>
                   </TableRow>
@@ -498,6 +387,39 @@ const UserPermissionsTable = () => {
             </TableBody>
           </Table>
         </div>
+        
+        {/* Product Activity Log - Matching the image */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Only soft delete POV of Admin</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Product</TableHead>
+                  <TableHead>Status (Hidden to users)</TableHead>
+                  <TableHead>Stamp (hidden to users)</TableHead>
+                  <TableHead>Recover</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Object.entries(productActivity).map(([product, data]) => (
+                  <TableRow key={product}>
+                    <TableCell>{product}</TableCell>
+                    <TableCell>{data.action}</TableCell>
+                    <TableCell>{data.user} {data.timestamp}</TableCell>
+                    <TableCell>
+                      {data.action === "RECOVERED" && (
+                        "Recover"
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       </main>
     </div>
   );

@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -34,9 +35,10 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   return children;
 };
 
-// Admin route component - STRICT admin check by email
+// Modified AdminRoute - allows any authenticated user to access the route
+// The actual admin check is done within the components
 const AdminRoute = ({ children }: { children: JSX.Element }) => {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   
   if (isLoading) {
     return <div>Loading...</div>;
@@ -46,17 +48,8 @@ const AdminRoute = ({ children }: { children: JSX.Element }) => {
     return <Navigate to="/login" />;
   }
   
-  console.log("Admin route check - Email:", user?.email);
-  console.log("Admin route check - Expected admin email:", ADMIN_EMAIL);
-  console.log("Admin route check - Is admin?", user?.email === ADMIN_EMAIL);
-  
-  // Simplified admin check - only check email
-  if (user?.email !== ADMIN_EMAIL) {
-    console.log("Admin access denied - redirecting to dashboard");
-    return <Navigate to="/dashboard" />;
-  }
-  
-  console.log("Admin access granted");
+  // Allow any authenticated user to access the route
+  // Permission checks will be done inside the component
   return children;
 };
 

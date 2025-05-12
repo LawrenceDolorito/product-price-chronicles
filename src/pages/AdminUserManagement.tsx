@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -54,53 +55,16 @@ const AdminUserManagement = () => {
   const [loading, setLoading] = useState(true);
   const { user, profile, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
-  const [currentUserRoleKey, setCurrentUserRoleKey] = useState<string | null>(null);
 
   console.log("AdminUserManagement - Current user:", user?.email);
-  console.log("AdminUserManagement - User role from profile:", profile?.role);
-  console.log("AdminUserManagement - User role_key from profile:", profile?.role_key);
   console.log("AdminUserManagement - Admin email:", ADMIN_EMAIL);
-
-  // Update current user role when profile changes
-  useEffect(() => {
-    if (profile) {
-      setCurrentUserRole(profile.role);
-      setCurrentUserRoleKey(profile.role_key);
-      console.log("Setting current user role:", profile.role);
-      console.log("Setting current user role_key:", profile.role_key);
-    }
-  }, [profile]);
-
-  // Redirect blocked users to login
-  useEffect(() => {
-    if (isAuthenticated && currentUserRole === 'blocked') {
-      toast.error('Your account has been blocked. Please contact an administrator.');
-      navigate('/login');
-    }
-  }, [isAuthenticated, currentUserRole, navigate]);
-
-  // Strict admin check - both role, role_key and email must match
-  useEffect(() => {
-    const isAdmin = isAuthenticated && 
-                   currentUserRole === 'admin' && 
-                   currentUserRoleKey === 'admin' && 
-                   user?.email === ADMIN_EMAIL;
-                   
-    console.log("Admin check result:", isAdmin);
-    
-    if (isAuthenticated && !isAdmin) {
-      toast.error('You do not have permission to access this page');
-      navigate('/dashboard');
-    }
-  }, [isAuthenticated, currentUserRole, currentUserRoleKey, user, navigate]);
+  console.log("AdminUserManagement - Is admin?", user?.email === ADMIN_EMAIL);
 
   useEffect(() => {
-    // Only fetch users if the current user is authenticated and has admin role
-    if (isAuthenticated && currentUserRole === 'admin' && user?.email === ADMIN_EMAIL) {
+    if (isAuthenticated) {
       fetchUsers();
     }
-  }, [isAuthenticated, currentUserRole, user]);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -196,6 +160,12 @@ const AdminUserManagement = () => {
   };
 
   const handleRoleChange = (userId: string, newRole: string) => {
+    // Only allow the admin to change roles
+    if (user?.email !== ADMIN_EMAIL) {
+      toast.error("Only admins can change user roles");
+      return;
+    }
+    
     setUsers((prevUsers) =>
       prevUsers.map((u) => (u.id === userId ? { ...u, role: newRole } : u))
     );
@@ -208,32 +178,7 @@ const AdminUserManagement = () => {
     return user?.id === userId;
   };
 
-  const isAdmin = currentUserRole === 'admin' && currentUserRoleKey === 'admin' && user?.email === ADMIN_EMAIL;
-
-  // If not admin, show access denied message instead of trying to render the admin UI
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <main className="container mx-auto px-4 py-12">
-          <Card className="max-w-md mx-auto">
-            <CardHeader>
-              <CardTitle className="text-red-500">Access Denied</CardTitle>
-              <CardDescription>
-                You don't have permission to access the admin panel.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4">This page is restricted to administrators only.</p>
-              <Button onClick={() => navigate('/dashboard')}>
-                Return to Dashboard
-              </Button>
-            </CardContent>
-          </Card>
-        </main>
-      </div>
-    );
-  }
+  const isAdmin = user?.email === ADMIN_EMAIL;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -246,6 +191,11 @@ const AdminUserManagement = () => {
             <p className="text-gray-600 mt-1">
               Manage user accounts, roles, and permissions
             </p>
+            {!isAdmin && (
+              <p className="text-orange-500 mt-2">
+                Note: Only administrators can modify user roles and permissions
+              </p>
+            )}
           </div>
           <div className="mt-4 md:mt-0">
             <Button
