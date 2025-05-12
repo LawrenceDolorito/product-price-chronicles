@@ -18,11 +18,14 @@ const Navbar: React.FC = () => {
   };
 
   // Strict admin check - role, role_key and email must all match
-  const isAdmin = profile?.role === 'admin' && profile?.role_key === 'admin' && user?.email === ADMIN_EMAIL;
+  const isAdmin = profile?.role === 'admin' && 
+                 profile?.role_key === 'admin' && 
+                 user?.email === ADMIN_EMAIL;
   
   console.log("Navbar - User email:", user?.email);
   console.log("Navbar - User role:", profile?.role);
   console.log("Navbar - User role_key:", profile?.role_key);
+  console.log("Navbar - Admin email:", ADMIN_EMAIL);
   console.log("Navbar - Admin check result:", isAdmin);
 
   return (

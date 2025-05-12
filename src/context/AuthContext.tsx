@@ -11,7 +11,7 @@ type Profile = {
   avatar_url?: string;
   role: string;
   role_key: string;
-  email?: string; // Keep email as optional since it's not in the database table
+  email?: string;
 };
 
 type AuthContextType = {
@@ -48,7 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           // Use setTimeout to avoid potential deadlocks with Supabase auth
           setTimeout(() => {
-            fetchUserProfile(session.user.id);
+            fetchUserProfile(session.user.id, session.user.email);
           }, 0);
         } else {
           setProfile(null);
@@ -63,7 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsAuthenticated(!!session?.user);
       
       if (session?.user) {
-        fetchUserProfile(session.user.id);
+        fetchUserProfile(session.user.id, session.user.email);
       }
       setIsLoading(false);
     });
@@ -73,9 +73,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  const fetchUserProfile = async (userId: string) => {
+  const fetchUserProfile = async (userId: string, userEmail?: string | null) => {
     try {
       console.log("Fetching profile for user ID:", userId);
+      console.log("User email from auth:", userEmail);
+      
       // Include role_key in the select query
       const { data, error } = await supabase
         .from('profiles')
@@ -90,8 +92,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (data) {
         // Check if the user is our special admin user by email
-        const isSpecialAdmin = user?.email === ADMIN_EMAIL;
-        console.log("User email:", user?.email);
+        const isSpecialAdmin = userEmail === ADMIN_EMAIL;
+        console.log("User email:", userEmail);
+        console.log("Admin email:", ADMIN_EMAIL);
         console.log("Is special admin?", isSpecialAdmin);
         console.log("Current role from DB:", data.role);
         console.log("Current role_key from DB:", data.role_key);
@@ -99,7 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Add email from the auth user data instead of from profiles table
         const profileWithEmail: Profile = {
           ...data,
-          email: user?.email
+          email: userEmail
         };
         
         // Special case: If user is doloritolawrence@gmail.com, ensure they have admin role
@@ -123,8 +126,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setProfile({ ...profileWithEmail, role: 'admin', role_key: 'admin' });
         } else {
           // For all other users, ensure they are NOT admins
-          if (data.role === 'admin' && user?.email !== ADMIN_EMAIL) {
-            console.log("Correcting non-admin user with admin role:", user?.email);
+          if (data.role === 'admin' && userEmail !== ADMIN_EMAIL) {
+            console.log("Correcting non-admin user with admin role:", userEmail);
             const { error: updateError } = await supabase
               .from('profiles')
               .update({ role: 'user', role_key: 'user' })
