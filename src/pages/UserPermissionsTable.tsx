@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -195,7 +194,7 @@ const UserPermissionsTable = () => {
     }
   };
 
-  const isSpecialAdmin = profile?.role === 'admin';
+  const isSpecialAdmin = profile?.role === 'admin' && profile?.role_key === 'admin';
   const isAdminUser = (email: string) => email === "doloritolawrence@gmail.com";
 
   return (

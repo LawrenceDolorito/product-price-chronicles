@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -41,6 +40,7 @@ type User = {
   id: string;
   email: string;
   role: string;
+  role_key: string;
   created_at: string;
   first_name: string | null;
   last_name: string | null;
@@ -55,16 +55,20 @@ const AdminUserManagement = () => {
   const { user, profile, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [currentUserRoleKey, setCurrentUserRoleKey] = useState<string | null>(null);
 
   console.log("AdminUserManagement - Current user:", user?.email);
   console.log("AdminUserManagement - User role from profile:", profile?.role);
+  console.log("AdminUserManagement - User role_key from profile:", profile?.role_key);
   console.log("AdminUserManagement - Admin email:", ADMIN_EMAIL);
 
   // Update current user role when profile changes
   useEffect(() => {
     if (profile) {
       setCurrentUserRole(profile.role);
+      setCurrentUserRoleKey(profile.role_key);
       console.log("Setting current user role:", profile.role);
+      console.log("Setting current user role_key:", profile.role_key);
     }
   }, [profile]);
 
@@ -76,16 +80,20 @@ const AdminUserManagement = () => {
     }
   }, [isAuthenticated, currentUserRole, navigate]);
 
-  // Strict admin check - only the specific admin email with admin role can access this page
+  // Strict admin check - both role, role_key and email must match
   useEffect(() => {
-    const isAdmin = isAuthenticated && currentUserRole === 'admin' && user?.email === ADMIN_EMAIL;
+    const isAdmin = isAuthenticated && 
+                   currentUserRole === 'admin' && 
+                   currentUserRoleKey === 'admin' && 
+                   user?.email === ADMIN_EMAIL;
+                   
     console.log("Admin check result:", isAdmin);
     
     if (isAuthenticated && !isAdmin) {
       toast.error('You do not have permission to access this page');
       navigate('/dashboard');
     }
-  }, [isAuthenticated, currentUserRole, user, navigate]);
+  }, [isAuthenticated, currentUserRole, currentUserRoleKey, user, navigate]);
 
   useEffect(() => {
     // Only fetch users if the current user is authenticated and has admin role
@@ -169,6 +177,7 @@ const AdminUserManagement = () => {
           id: profile.id,
           email: profile.email || `user-${profile.id.slice(0, 8)}@example.com`,
           role: profile.role || 'user',
+          role_key: profile.role_key || 'user',
           created_at: profile.created_at,
           first_name: profile.first_name || '',
           last_name: profile.last_name || '',
@@ -199,7 +208,7 @@ const AdminUserManagement = () => {
     return user?.id === userId;
   };
 
-  const isAdmin = currentUserRole === 'admin' && user?.email === ADMIN_EMAIL;
+  const isAdmin = currentUserRole === 'admin' && currentUserRoleKey === 'admin' && user?.email === ADMIN_EMAIL;
 
   // If not admin, show access denied message instead of trying to render the admin UI
   if (!isAdmin) {

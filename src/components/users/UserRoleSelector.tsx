@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
@@ -25,9 +24,10 @@ const UserRoleSelector = ({
   const handleRoleChange = async (role: string) => {
     setIsUpdating(true);
     try {
+      // Update both role and role_key
       const { error } = await supabase
         .from("profiles")
-        .update({ role })
+        .update({ role: role, role_key: role })
         .eq("id", userId);
         
       if (error) throw error;

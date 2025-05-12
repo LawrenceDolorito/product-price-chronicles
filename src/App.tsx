@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -34,7 +35,7 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   return children;
 };
 
-// Admin route component - STRICT admin check with email
+// Admin route component - STRICT admin check with email and role_key
 const AdminRoute = ({ children }: { children: JSX.Element }) => {
   const { isAuthenticated, isLoading, profile, user } = useAuth();
   
@@ -48,11 +49,12 @@ const AdminRoute = ({ children }: { children: JSX.Element }) => {
   
   console.log("Admin route check - Email:", user?.email);
   console.log("Admin route check - Role:", profile?.role);
+  console.log("Admin route check - Role key:", profile?.role_key);
   console.log("Admin route check - Expected admin email:", ADMIN_EMAIL);
-  console.log("Admin route check - Is admin?", profile?.role === 'admin' && user?.email === ADMIN_EMAIL);
+  console.log("Admin route check - Is admin?", profile?.role === 'admin' && profile?.role_key === 'admin' && user?.email === ADMIN_EMAIL);
   
-  // Strict admin check - both role AND email must match
-  if (profile?.role !== 'admin' || user?.email !== ADMIN_EMAIL) {
+  // Strict admin check - both role, role_key AND email must match
+  if (profile?.role !== 'admin' || profile?.role_key !== 'admin' || user?.email !== ADMIN_EMAIL) {
     console.log("Admin access denied - redirecting to dashboard");
     return <Navigate to="/dashboard" />;
   }

@@ -10,6 +10,7 @@ type Profile = {
   last_name: string;
   avatar_url?: string;
   role: string;
+  role_key: string;
   email?: string; // Keep email as optional since it's not in the database table
 };
 
@@ -75,10 +76,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchUserProfile = async (userId: string) => {
     try {
       console.log("Fetching profile for user ID:", userId);
-      // Remove email from the select query since it doesn't exist in the profiles table
+      // Include role_key in the select query
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, avatar_url, role')
+        .select('id, first_name, last_name, avatar_url, role, role_key')
         .eq('id', userId)
         .single();
         
@@ -93,6 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log("User email:", user?.email);
         console.log("Is special admin?", isSpecialAdmin);
         console.log("Current role from DB:", data.role);
+        console.log("Current role_key from DB:", data.role_key);
         
         // Add email from the auth user data instead of from profiles table
         const profileWithEmail: Profile = {
@@ -104,11 +106,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (isSpecialAdmin) {
           console.log(`Setting admin role for ${ADMIN_EMAIL}`);
           
-          if (data.role !== 'admin') {
+          if (data.role !== 'admin' || data.role_key !== 'admin') {
             console.log("Updating role to admin in database");
             const { error: updateError } = await supabase
               .from('profiles')
-              .update({ role: 'admin' })
+              .update({ role: 'admin', role_key: 'admin' })
               .eq('id', userId);
               
             if (updateError) {
@@ -118,14 +120,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           
           // Always set admin role in the frontend
           console.log("Setting profile with admin role in the app state");
-          setProfile({ ...profileWithEmail, role: 'admin' });
+          setProfile({ ...profileWithEmail, role: 'admin', role_key: 'admin' });
         } else {
           // For all other users, ensure they are NOT admins
           if (data.role === 'admin' && user?.email !== ADMIN_EMAIL) {
             console.log("Correcting non-admin user with admin role:", user?.email);
             const { error: updateError } = await supabase
               .from('profiles')
-              .update({ role: 'user' })
+              .update({ role: 'user', role_key: 'user' })
               .eq('id', userId);
               
             if (updateError) {
@@ -133,7 +135,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
             
             // Set user role in the frontend
-            setProfile({ ...profileWithEmail, role: 'user' });
+            setProfile({ ...profileWithEmail, role: 'user', role_key: 'user' });
           } else {
             // Use the role from the database
             console.log("Setting normal user profile:", profileWithEmail);

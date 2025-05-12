@@ -17,8 +17,13 @@ const Navbar: React.FC = () => {
     navigate("/login");
   };
 
-  // Strict admin check - both role and email must match
-  const isAdmin = profile?.role === 'admin' && user?.email === ADMIN_EMAIL;
+  // Strict admin check - role, role_key and email must all match
+  const isAdmin = profile?.role === 'admin' && profile?.role_key === 'admin' && user?.email === ADMIN_EMAIL;
+  
+  console.log("Navbar - User email:", user?.email);
+  console.log("Navbar - User role:", profile?.role);
+  console.log("Navbar - User role_key:", profile?.role_key);
+  console.log("Navbar - Admin check result:", isAdmin);
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">

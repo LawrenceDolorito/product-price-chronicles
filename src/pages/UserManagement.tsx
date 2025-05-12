@@ -40,6 +40,7 @@ type User = {
   id: string;
   email: string;
   role: string;
+  role_key: string;
   created_at: string;
   first_name: string;
   last_name: string;
@@ -62,11 +63,12 @@ const UserManagement = () => {
   const { isAuthenticated, profile, user } = useAuth();
   const navigate = useNavigate();
 
-  // Check if current user is admin - strictly check both role and email
-  const isAdmin = profile?.role === 'admin' && user?.email === ADMIN_EMAIL;
+  // Check if current user is admin - strictly check role, role_key and email
+  const isAdmin = profile?.role === 'admin' && profile?.role_key === 'admin' && user?.email === ADMIN_EMAIL;
 
   console.log("UserManagement - User email:", user?.email);
   console.log("UserManagement - User role:", profile?.role);
+  console.log("UserManagement - User role_key:", profile?.role_key);
   console.log("UserManagement - isAdmin check:", isAdmin);
 
   // Redirect non-authenticated users
@@ -123,12 +125,13 @@ const UserManagement = () => {
       // Process the profiles data
       const processedUsers = profilesData.map((profile: any) => {
         // For the admin user, ensure we know it's the admin email
-        const isAdminProfile = profile.role === 'admin' && profile.id === user?.id && user?.email === ADMIN_EMAIL;
+        const isAdminProfile = profile.role === 'admin' && profile.role_key === 'admin' && profile.id === user?.id && user?.email === ADMIN_EMAIL;
         
         return {
           id: profile.id,
           email: isAdminProfile ? ADMIN_EMAIL : (profile.email || `user-${profile.id.slice(0, 8)}@example.com`),
           role: profile.role || "user",
+          role_key: profile.role_key || "user",
           created_at: profile.created_at || new Date().toISOString(),
           first_name: profile.first_name || '',
           last_name: profile.last_name || ''
@@ -191,7 +194,8 @@ const UserManagement = () => {
             id: authData.user.id,
             first_name: newUser.firstName,
             last_name: newUser.lastName,
-            role: newUser.role
+            role: newUser.role,
+            role_key: newUser.role
           });
           
         if (profileError) throw profileError;
@@ -201,6 +205,7 @@ const UserManagement = () => {
           id: authData.user.id,
           email: newUser.email,
           role: newUser.role,
+          role_key: newUser.role,
           created_at: new Date().toISOString(),
           first_name: newUser.firstName,
           last_name: newUser.lastName
@@ -236,17 +241,17 @@ const UserManagement = () => {
     }
     
     try {
-      // Update the user role in the database
+      // Update both role and role_key in the database
       const { error } = await supabase
         .from('profiles')
-        .update({ role: newRole })
+        .update({ role: newRole, role_key: newRole })
         .eq('id', id);
       
       if (error) throw error;
       
       // Update local state
       const updatedUsers = users.map(user => 
-        user.id === id ? { ...user, role: newRole } : user
+        user.id === id ? { ...user, role: newRole, role_key: newRole } : user
       );
       
       setUsers(updatedUsers);
