@@ -82,7 +82,7 @@ const Navbar: React.FC = () => {
               >
                 <Users size={18} className="mr-2" /> Users
               </Button>
-              {isAdmin && (
+              {user.email === ADMIN_EMAIL && (
                 <Button
                   onClick={() => navigate("/admin/user-management")}
                   variant="ghost"

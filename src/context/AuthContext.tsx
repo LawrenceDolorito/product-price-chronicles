@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { toast } from "sonner";
 import { User, Session } from "@supabase/supabase-js";
@@ -91,7 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       if (data) {
-        // Check if the user is our special admin user by email
+        // Always check if this is the special admin email
         const isSpecialAdmin = userEmail === ADMIN_EMAIL;
         console.log("User email:", userEmail);
         console.log("Admin email:", ADMIN_EMAIL);
@@ -99,7 +98,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log("Current role from DB:", data.role);
         console.log("Current role_key from DB:", data.role_key);
         
-        // Add email from the auth user data instead of from profiles table
+        // Add email from the auth user data
         const profileWithEmail: Profile = {
           ...data,
           email: userEmail
@@ -109,6 +108,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (isSpecialAdmin) {
           console.log(`Setting admin role for ${ADMIN_EMAIL}`);
           
+          // Always set admin role in the frontend
+          console.log("Setting profile with admin role in the app state");
+          setProfile({ ...profileWithEmail, role: 'admin', role_key: 'admin' });
+          
+          // Update database if needed
           if (data.role !== 'admin' || data.role_key !== 'admin') {
             console.log("Updating role to admin in database");
             const { error: updateError } = await supabase
@@ -120,10 +124,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               console.error("Error updating profile to admin:", updateError);
             }
           }
-          
-          // Always set admin role in the frontend
-          console.log("Setting profile with admin role in the app state");
-          setProfile({ ...profileWithEmail, role: 'admin', role_key: 'admin' });
         } else {
           // For all other users, ensure they are NOT admins
           if (data.role === 'admin' && userEmail !== ADMIN_EMAIL) {
