@@ -1,3 +1,4 @@
+
 export type Product = {
   id: string;
   name: string;
@@ -21,11 +22,12 @@ export type ChartData = {
   price: number;
 }[];
 
+// Simplified type for Supabase realtime payloads
 export type SupabaseRealtimePayload = {
   commit_timestamp: string;
   eventType: 'INSERT' | 'UPDATE' | 'DELETE';
   schema: string;
   table: string;
-  new: any;
-  old: any;
+  new: Record<string, any>;
+  old: Record<string, any>;
 };
