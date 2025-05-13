@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { useNavigate } from "react-router-dom";
+import { SupabaseRealtimePayload } from "@/types/types";
 
 // Define admin email constant
 const ADMIN_EMAIL = "doloritolawrence@gmail.com";
@@ -77,7 +78,7 @@ const UserPermissionsTable = () => {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'product' },
-        (payload: PostgresChangePayload) => {
+        (payload) => {
           console.log("Product change detected:", payload);
           fetchProductActivity(); // Refresh activity log when products change
         }
@@ -90,7 +91,7 @@ const UserPermissionsTable = () => {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'profiles' },
-        (payload: PostgresChangePayload) => {
+        (payload) => {
           console.log("Profiles change detected:", payload);
           fetchUsersWithPermissions(); // Refresh users when profiles change
         }
