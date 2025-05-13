@@ -22,7 +22,7 @@ export type ChartData = {
   price: number;
 }[];
 
-// Simplified type for Supabase realtime payloads
+// Use a simpler type for Supabase realtime payloads to avoid excessive type instantiation
 export type SupabaseRealtimePayload = {
   commit_timestamp: string;
   eventType: 'INSERT' | 'UPDATE' | 'DELETE';
