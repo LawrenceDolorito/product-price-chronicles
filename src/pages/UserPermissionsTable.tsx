@@ -1,25 +1,15 @@
 import React, { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { 
-  Table, TableBody, TableCaption, TableCell, 
-  TableHead, TableHeader, TableRow 
-} from "@/components/ui/table";
-import { Loader2, Search, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
 import { useNavigate } from "react-router-dom";
 import { SupabaseRealtimePayload } from "@/types/types";
+import UserSearchBar from "@/components/users/UserSearchBar";
+import UserPermissionsList from "@/components/users/UserPermissionsList";
+import ProductActivityLog from "@/components/products/ProductActivityLog";
 
 // Define admin email constant
 const ADMIN_EMAIL = "doloritolawrence@gmail.com";
@@ -44,16 +34,6 @@ type ProductActivity = {
   user: string;
   timestamp: string;
   id: string;
-};
-
-// Define simpler types for Supabase realtime payloads to prevent deep type instantiation
-type PostgresChangePayload = {
-  commit_timestamp: string;
-  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
-  schema: string;
-  table: string;
-  new: Record<string, any>;
-  old: Record<string, any>;
 };
 
 const UserPermissionsTable = () => {
@@ -393,258 +373,28 @@ const UserPermissionsTable = () => {
           </div>
         </div>
         
-        <Card className="mb-8">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Search Users</CardTitle>
-            <CardDescription>
-              Find users by name or email address
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="relative max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                type="text"
-                placeholder="Search users..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 w-full"
-              />
-            </div>
-          </CardContent>
-        </Card>
+        {/* Search Bar Component */}
+        <UserSearchBar 
+          searchQuery={searchQuery} 
+          setSearchQuery={setSearchQuery} 
+        />
         
-        {/* User Permissions Table */}
-        <div className="rounded-md border mb-8">
-          <Table>
-            <TableCaption>User access permissions</TableCaption>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Username</TableHead>
-                <TableHead colSpan={2}>User access</TableHead>
-                <TableHead>Delete Product</TableHead>
-                <TableHead>Add Product</TableHead>
-                <TableHead>Edit Price History</TableHead>
-                <TableHead>Delete Price History</TableHead>
-                <TableHead>Add Price History</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-10">
-                    <div className="flex justify-center items-center">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                      <span className="ml-2">Loading user permissions...</span>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : filteredUsers.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
-                    {searchQuery ? "No users found matching your search" : "No users found"}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>
-                      {user.first_name || user.last_name ? 
-                        `${user.first_name} ${user.last_name}` : 
-                        user.email.split('@')[0]}
-                    </TableCell>
-                    <TableCell className="font-medium">Edit Product</TableCell>
-                    <TableCell>
-                      {user.email === ADMIN_EMAIL || user.role === 'admin' ? (
-                        <span className="font-medium text-green-600">YES</span>
-                      ) : isAdmin ? (
-                        <div className="flex items-center">
-                          <span className="font-medium mr-2">
-                            {user.edit_product ? "YES" : "NO"}
-                          </span>
-                          <Switch
-                            checked={user.edit_product}
-                            onCheckedChange={(checked) => 
-                              handlePermissionChange(user.id, "product", "can_edit", checked)
-                            }
-                          />
-                        </div>
-                      ) : (
-                        <span className="font-medium">
-                          {user.edit_product ? "YES" : "NO"}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {user.email === ADMIN_EMAIL || user.role === 'admin' ? (
-                        <span className="font-medium text-green-600">YES</span>
-                      ) : isAdmin ? (
-                        <div className="flex items-center">
-                          <span className="font-medium mr-2">
-                            {user.delete_product ? "YES" : "NO"}
-                          </span>
-                          <Switch
-                            checked={user.delete_product}
-                            onCheckedChange={(checked) => 
-                              handlePermissionChange(user.id, "product", "can_delete", checked)
-                            }
-                          />
-                        </div>
-                      ) : (
-                        <span className="font-medium">
-                          {user.delete_product ? "YES" : "NO"}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {user.email === ADMIN_EMAIL || user.role === 'admin' ? (
-                        <span className="font-medium text-green-600">YES</span>
-                      ) : isAdmin ? (
-                        <div className="flex items-center">
-                          <span className="font-medium mr-2">
-                            {user.add_product ? "YES" : "NO"}
-                          </span>
-                          <Switch
-                            checked={user.add_product}
-                            onCheckedChange={(checked) => 
-                              handlePermissionChange(user.id, "product", "can_add", checked)
-                            }
-                          />
-                        </div>
-                      ) : (
-                        <span className="font-medium">
-                          {user.add_product ? "YES" : "NO"}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {user.email === ADMIN_EMAIL || user.role === 'admin' ? (
-                        <span className="font-medium text-green-600">YES</span>
-                      ) : isAdmin ? (
-                        <div className="flex items-center">
-                          <span className="font-medium mr-2">
-                            {user.edit_pricehist ? "YES" : "NO"}
-                          </span>
-                          <Switch
-                            checked={user.edit_pricehist}
-                            onCheckedChange={(checked) => 
-                              handlePermissionChange(user.id, "pricehist", "can_edit", checked)
-                            }
-                          />
-                        </div>
-                      ) : (
-                        <span className="font-medium">
-                          {user.edit_pricehist ? "YES" : "NO"}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {user.email === ADMIN_EMAIL || user.role === 'admin' ? (
-                        <span className="font-medium text-green-600">YES</span>
-                      ) : isAdmin ? (
-                        <div className="flex items-center">
-                          <span className="font-medium mr-2">
-                            {user.delete_pricehist ? "YES" : "NO"}
-                          </span>
-                          <Switch
-                            checked={user.delete_pricehist}
-                            onCheckedChange={(checked) => 
-                              handlePermissionChange(user.id, "pricehist", "can_delete", checked)
-                            }
-                          />
-                        </div>
-                      ) : (
-                        <span className="font-medium">
-                          {user.delete_pricehist ? "YES" : "NO"}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {user.email === ADMIN_EMAIL || user.role === 'admin' ? (
-                        <span className="font-medium text-green-600">YES</span>
-                      ) : isAdmin ? (
-                        <div className="flex items-center">
-                          <span className="font-medium mr-2">
-                            {user.add_pricehist ? "YES" : "NO"}
-                          </span>
-                          <Switch
-                            checked={user.add_pricehist}
-                            onCheckedChange={(checked) => 
-                              handlePermissionChange(user.id, "pricehist", "can_add", checked)
-                            }
-                          />
-                        </div>
-                      ) : (
-                        <span className="font-medium">
-                          {user.add_pricehist ? "YES" : "NO"}
-                        </span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+        {/* User Permissions List Component */}
+        <UserPermissionsList
+          users={filteredUsers}
+          loading={loading}
+          isAdmin={isAdmin}
+          adminEmail={ADMIN_EMAIL}
+          handlePermissionChange={handlePermissionChange}
+        />
         
-        {/* Product Activity Log */}
-        <Card className="mb-8">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Product Activity Log</CardTitle>
-            <CardDescription>
-              Real-time log of product status changes and actions
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Timestamp</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {activityLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center py-6">
-                      <div className="flex justify-center items-center">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                        <span className="ml-2">Loading activity...</span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : productActivity.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
-                      No product activity found
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  productActivity.map((activity) => (
-                    <TableRow key={`${activity.id}-${activity.timestamp}`}>
-                      <TableCell>{activity.product}</TableCell>
-                      <TableCell>{activity.action}</TableCell>
-                      <TableCell>{activity.timestamp}</TableCell>
-                      <TableCell>
-                        {activity.action !== "RECOVERED" && isAdmin && (
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleRecover(activity.id)}
-                          >
-                            Recover
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        {/* Product Activity Log Component */}
+        <ProductActivityLog 
+          activityLoading={activityLoading}
+          productActivity={productActivity}
+          isAdmin={isAdmin}
+          handleRecover={handleRecover}
+        />
       </main>
     </div>
   );
