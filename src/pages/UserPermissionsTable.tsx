@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,30 @@ type ProductActivity = {
   id: string;
 };
 
+// Define types for Supabase realtime payloads
+type RealtimePostgresChangesPayload<T> = {
+  commit_timestamp: string;
+  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
+  schema: string;
+  table: string;
+  new: T;
+  old: T;
+};
+
+type ProductPayload = RealtimePostgresChangesPayload<{
+  prodcode: string;
+  description: string | null;
+  status: string | null;
+  stamp: string | null;
+}>;
+
+type ProfilePayload = RealtimePostgresChangesPayload<{
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+}>;
+
 const UserPermissionsTable = () => {
   const [users, setUsers] = useState<UserPermissionRow[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<UserPermissionRow[]>([]);
@@ -67,7 +92,7 @@ const UserPermissionsTable = () => {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'product' },
-        (payload) => {
+        (payload: ProductPayload) => {
           console.log("Product change detected:", payload);
           fetchProductActivity(); // Refresh activity log when products change
         }
@@ -80,7 +105,7 @@ const UserPermissionsTable = () => {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'profiles' },
-        (payload) => {
+        (payload: ProfilePayload) => {
           console.log("Profiles change detected:", payload);
           fetchUsersWithPermissions(); // Refresh users when profiles change
         }
