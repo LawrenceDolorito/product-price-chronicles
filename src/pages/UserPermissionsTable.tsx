@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -62,6 +61,24 @@ const UserPermissionsTable = () => {
     fetchUsersWithPermissions();
     fetchProductActivity();
 
+    // Enable Supabase realtime for product table
+    supabase
+      .from('product')
+      .on('*', (payload) => {
+        console.log('Product table change detected:', payload);
+        fetchProductActivity(); // Refresh activity whenever product changes
+      })
+      .subscribe();
+
+    // Enable Supabase realtime for profiles table
+    supabase
+      .from('profiles')
+      .on('*', (payload) => {
+        console.log('Profiles table change detected:', payload);
+        fetchUsersWithPermissions(); // Refresh users whenever profiles change
+      })
+      .subscribe();
+
     // Set up a subscription for real-time updates to product status changes
     const productChannel = supabase
       .channel('product-changes')
@@ -105,7 +122,8 @@ const UserPermissionsTable = () => {
         .from('product')
         .select('prodcode, description, status, stamp')
         .not('status', 'is', null)
-        .order('stamp', { ascending: false });
+        .order('stamp', { ascending: false })
+        .limit(20); // Limiting to 20 most recent records
 
       if (productsError) throw productsError;
       
@@ -124,6 +142,68 @@ const UserPermissionsTable = () => {
       toast.error("Failed to load product activity");
     } finally {
       setActivityLoading(false);
+    }
+  };
+
+  const seedReferenceUsers = async () => {
+    try {
+      // Check if we already have some test users
+      const { data: existingUsers, error: checkError } = await supabase
+        .from('profiles')
+        .select('email')
+        .in('email', ['testuser1@example.com', 'testuser2@example.com', 'testuser3@example.com']);
+        
+      if (checkError) throw checkError;
+      
+      // If we already have these test users, don't add them again
+      if (existingUsers && existingUsers.length >= 3) {
+        console.log('Reference users already exist');
+        return;
+      }
+      
+      // Otherwise, create our sample users
+      const sampleUsers = [
+        {
+          id: crypto.randomUUID(),
+          first_name: "John",
+          last_name: "Doe",
+          email: "testuser1@example.com",
+          role: "user",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+        {
+          id: crypto.randomUUID(),
+          first_name: "Jane",
+          last_name: "Smith",
+          email: "testuser2@example.com",
+          role: "user",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+        {
+          id: crypto.randomUUID(),
+          first_name: "Alex",
+          last_name: "Johnson",
+          email: "testuser3@example.com",
+          role: "user",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+      ];
+      
+      // Insert the sample users
+      const { error: insertError } = await supabase
+        .from('profiles')
+        .insert(sampleUsers);
+        
+      if (insertError) throw insertError;
+      
+      toast.success("Reference users added successfully");
+      fetchUsersWithPermissions();
+    } catch (error) {
+      console.error("Error adding reference users:", error);
+      toast.error("Failed to add reference users");
     }
   };
 
@@ -286,6 +366,15 @@ const UserPermissionsTable = () => {
             </p>
           </div>
           <div className="mt-4 md:mt-0 flex space-x-2">
+            {isAdmin && (
+              <Button
+                variant="secondary"
+                onClick={seedReferenceUsers}
+                className="flex items-center gap-2"
+              >
+                Add Reference Users
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={() => navigate('/admin/user-management')}
@@ -353,7 +442,9 @@ const UserPermissionsTable = () => {
                 filteredUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>
-                      {user.first_name} {user.last_name}
+                      {user.first_name || user.last_name ? 
+                        `${user.first_name} ${user.last_name}` : 
+                        user.email.split('@')[0]}
                     </TableCell>
                     <TableCell className="font-medium">Edit Product</TableCell>
                     <TableCell>
@@ -491,14 +582,20 @@ const UserPermissionsTable = () => {
         
         {/* Product Activity Log */}
         <Card className="mb-8">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Product Activity Log</CardTitle>
+            <CardDescription>
+              Real-time log of product status changes and actions
+            </CardDescription>
+          </CardHeader>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Product</TableHead>
-                  <TableHead>Status (Hidden to users)</TableHead>
-                  <TableHead>Stamp (hidden to users)</TableHead>
-                  <TableHead>Recover</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Timestamp</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -522,7 +619,7 @@ const UserPermissionsTable = () => {
                     <TableRow key={`${activity.id}-${activity.timestamp}`}>
                       <TableCell>{activity.product}</TableCell>
                       <TableCell>{activity.action}</TableCell>
-                      <TableCell>{activity.user} - {activity.timestamp}</TableCell>
+                      <TableCell>{activity.timestamp}</TableCell>
                       <TableCell>
                         {activity.action !== "RECOVERED" && isAdmin && (
                           <Button 
