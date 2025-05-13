@@ -7,7 +7,7 @@ import {
   Table, TableBody, TableCaption, TableCell, 
   TableHead, TableHeader, TableRow 
 } from "@/components/ui/table";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -38,6 +38,14 @@ type UserPermissionRow = {
   add_pricehist: boolean;
 };
 
+type ProductActivity = {
+  product: string;
+  action: string;
+  user: string;
+  timestamp: string;
+  id: string;
+};
+
 const UserPermissionsTable = () => {
   const [users, setUsers] = useState<UserPermissionRow[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<UserPermissionRow[]>([]);
@@ -45,21 +53,32 @@ const UserPermissionsTable = () => {
   const [loading, setLoading] = useState(true);
   const { user, profile } = useAuth();
   const navigate = useNavigate();
-  const [productActivity, setProductActivity] = useState<Record<string, { action: string, user: string, timestamp: string }>>({});
+  const [productActivity, setProductActivity] = useState<ProductActivity[]>([]);
+  const [activityLoading, setActivityLoading] = useState(true);
+
+  const isAdmin = user?.email === ADMIN_EMAIL;
 
   useEffect(() => {
     fetchUsersWithPermissions();
     fetchProductActivity();
-  }, []);
 
-  const fetchProductActivity = async () => {
-    // This would normally come from the database, but we're mocking it based on the image
-    setProductActivity({
-      'KeyBoard': { action: 'EDITED', user: 'Juan Dela Cruz', timestamp: '2025-May-08 13:00 PM' },
-      'Mouse': { action: 'RECOVERED', user: 'Lawrence Dolorito', timestamp: '2025-May-08 11:33 AM' },
-      'Monitor': { action: 'ADDED', user: 'Juan Dela Cruz', timestamp: '2025-May-08 13:10 PM' },
-    });
-  };
+    // Set up a subscription for real-time updates to product status changes
+    const productChannel = supabase
+      .channel('product-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'product' },
+        (payload) => {
+          console.log("Product change detected:", payload);
+          fetchProductActivity(); // Refresh activity log when products change
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(productChannel);
+    };
+  }, []);
 
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -78,45 +97,44 @@ const UserPermissionsTable = () => {
     setFilteredUsers(filtered);
   }, [searchQuery, users]);
 
+  const fetchProductActivity = async () => {
+    setActivityLoading(true);
+    try {
+      // Fetch products with status changes
+      const { data: productsData, error: productsError } = await supabase
+        .from('product')
+        .select('prodcode, description, status, stamp')
+        .not('status', 'is', null)
+        .order('stamp', { ascending: false });
+
+      if (productsError) throw productsError;
+      
+      // Transform into activity entries
+      const activities: ProductActivity[] = productsData.map((product: any) => ({
+        id: product.prodcode,
+        product: product.description || product.prodcode,
+        action: product.status || 'UNKNOWN',
+        user: 'System', // We'll update this when we have actual user info
+        timestamp: new Date(product.stamp).toLocaleString(),
+      }));
+      
+      setProductActivity(activities);
+    } catch (error) {
+      console.error("Error fetching product activity:", error);
+      toast.error("Failed to load product activity");
+    } finally {
+      setActivityLoading(false);
+    }
+  };
+
   const fetchUsersWithPermissions = async () => {
     try {
       setLoading(true);
       
-      // For the mockup, we'll create sample user data based on the image
-      const usersWithPermissions = [
-        {
-          id: "1",
-          first_name: "Juan",
-          last_name: "Dela Cruz",
-          email: "juan@example.com",
-          role: "user",
-          edit_product: true,
-          delete_product: false,
-          add_product: true,
-          edit_pricehist: true,
-          delete_pricehist: false,
-          add_pricehist: true
-        },
-        {
-          id: "2",
-          first_name: "Maria",
-          last_name: "Santos",
-          email: "maria@example.com",
-          role: "user",
-          edit_product: false,
-          delete_product: false,
-          add_product: false,
-          edit_pricehist: false,
-          delete_pricehist: false,
-          add_pricehist: false
-        },
-        // Add more users from the actual database
-      ];
-      
-      // Also fetch the real users from the database
+      // Fetch all profiles from Supabase
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, role');
+        .select('*');
         
       if (profilesError) throw profilesError;
       
@@ -127,32 +145,23 @@ const UserPermissionsTable = () => {
         
       if (permissionsError) throw permissionsError;
       
-      // Combine all data
-      const realUsersWithPermissions = profilesData.map((profile: any) => {
-        // Find permissions for this user
+      // Combine profiles with permissions
+      const usersWithPermissions = profilesData.map((profile: any) => {
+        // Find permissions for product table
         const productPermissions = permissionsData.find(
           (p: any) => p.user_id === profile.id && p.table_name === 'product'
         ) || { can_add: false, can_edit: false, can_delete: false };
         
+        // Find permissions for pricehist table
         const pricehistPermissions = permissionsData.find(
           (p: any) => p.user_id === profile.id && p.table_name === 'pricehist'
         ) || { can_add: false, can_edit: false, can_delete: false };
-        
-        // Create mock email from name
-        const mockEmail = profile.first_name && profile.last_name 
-          ? `${profile.first_name.toLowerCase()}.${profile.last_name.toLowerCase()}@example.com`
-          : `user-${profile.id.slice(0, 8)}@example.com`;
-          
-        // Special case for doloritoLawrence
-        const email = profile.first_name === "Admin" && profile.last_name === "User" 
-          ? "doloritolawrence@gmail.com" 
-          : mockEmail;
         
         return {
           id: profile.id,
           first_name: profile.first_name || '',
           last_name: profile.last_name || '',
-          email: email,
+          email: profile.email || `user-${profile.id.slice(0, 8)}@example.com`,
           role: profile.role || 'user',
           edit_product: productPermissions.can_edit,
           delete_product: productPermissions.can_delete,
@@ -163,18 +172,8 @@ const UserPermissionsTable = () => {
         };
       });
       
-      // Combine mocked users with real users, removing duplicates
-      const combinedUsers = [...usersWithPermissions];
-      
-      // Add real users that aren't in the mocked data
-      realUsersWithPermissions.forEach(user => {
-        if (!combinedUsers.some(u => u.email === user.email)) {
-          combinedUsers.push(user);
-        }
-      });
-      
-      setUsers(combinedUsers);
-      setFilteredUsers(combinedUsers);
+      setUsers(usersWithPermissions);
+      setFilteredUsers(usersWithPermissions);
     } catch (error) {
       console.error("Error fetching users with permissions:", error);
       toast.error("Failed to load user permissions");
@@ -198,7 +197,7 @@ const UserPermissionsTable = () => {
     try {
       // Check if this is the special admin - don't allow changes
       const selectedUser = users.find(u => u.id === userId);
-      if (selectedUser?.email === "doloritolawrence@gmail.com") {
+      if (selectedUser?.email === ADMIN_EMAIL) {
         toast.error("Cannot modify permissions for the main administrator");
         return;
       }
@@ -256,7 +255,23 @@ const UserPermissionsTable = () => {
     }
   };
 
-  const isAdminUser = user?.email === ADMIN_EMAIL;
+  const handleRecover = async (productId: string) => {
+    try {
+      await supabase
+        .from('product')
+        .update({ 
+          status: 'RECOVERED',
+          stamp: new Date().toISOString()
+        })
+        .eq('prodcode', productId);
+      
+      toast.success("Product recovered successfully");
+      fetchProductActivity();
+    } catch (error) {
+      console.error("Error recovering product:", error);
+      toast.error("Failed to recover product");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -274,7 +289,9 @@ const UserPermissionsTable = () => {
             <Button
               variant="outline"
               onClick={() => navigate('/admin/user-management')}
+              className="flex items-center gap-2"
             >
+              <ArrowLeft className="h-4 w-4" />
               Back to User Management
             </Button>
           </div>
@@ -301,7 +318,7 @@ const UserPermissionsTable = () => {
           </CardContent>
         </Card>
         
-        {/* User Permissions Table - Matching the image */}
+        {/* User Permissions Table */}
         <div className="rounded-md border mb-8">
           <Table>
             <TableCaption>User access permissions</TableCaption>
@@ -340,45 +357,129 @@ const UserPermissionsTable = () => {
                     </TableCell>
                     <TableCell className="font-medium">Edit Product</TableCell>
                     <TableCell>
-                      {user.email === "doloritolawrence@gmail.com" || user.role === 'admin' ? (
+                      {user.email === ADMIN_EMAIL || user.role === 'admin' ? (
                         <span className="font-medium text-green-600">YES</span>
+                      ) : isAdmin ? (
+                        <div className="flex items-center">
+                          <span className="font-medium mr-2">
+                            {user.edit_product ? "YES" : "NO"}
+                          </span>
+                          <Switch
+                            checked={user.edit_product}
+                            onCheckedChange={(checked) => 
+                              handlePermissionChange(user.id, "product", "can_edit", checked)
+                            }
+                          />
+                        </div>
                       ) : (
-                        <span className="font-medium">{user.edit_product ? "YES" : "NO"}</span>
+                        <span className="font-medium">
+                          {user.edit_product ? "YES" : "NO"}
+                        </span>
                       )}
                     </TableCell>
                     <TableCell>
-                      {user.email === "doloritolawrence@gmail.com" || user.role === 'admin' ? (
+                      {user.email === ADMIN_EMAIL || user.role === 'admin' ? (
                         <span className="font-medium text-green-600">YES</span>
+                      ) : isAdmin ? (
+                        <div className="flex items-center">
+                          <span className="font-medium mr-2">
+                            {user.delete_product ? "YES" : "NO"}
+                          </span>
+                          <Switch
+                            checked={user.delete_product}
+                            onCheckedChange={(checked) => 
+                              handlePermissionChange(user.id, "product", "can_delete", checked)
+                            }
+                          />
+                        </div>
                       ) : (
-                        <span className="font-medium">{user.delete_product ? "YES" : "NO"}</span>
+                        <span className="font-medium">
+                          {user.delete_product ? "YES" : "NO"}
+                        </span>
                       )}
                     </TableCell>
                     <TableCell>
-                      {user.email === "doloritolawrence@gmail.com" || user.role === 'admin' ? (
+                      {user.email === ADMIN_EMAIL || user.role === 'admin' ? (
                         <span className="font-medium text-green-600">YES</span>
+                      ) : isAdmin ? (
+                        <div className="flex items-center">
+                          <span className="font-medium mr-2">
+                            {user.add_product ? "YES" : "NO"}
+                          </span>
+                          <Switch
+                            checked={user.add_product}
+                            onCheckedChange={(checked) => 
+                              handlePermissionChange(user.id, "product", "can_add", checked)
+                            }
+                          />
+                        </div>
                       ) : (
-                        <span className="font-medium">{user.add_product ? "YES" : "NO"}</span>
+                        <span className="font-medium">
+                          {user.add_product ? "YES" : "NO"}
+                        </span>
                       )}
                     </TableCell>
                     <TableCell>
-                      {user.email === "doloritolawrence@gmail.com" || user.role === 'admin' ? (
+                      {user.email === ADMIN_EMAIL || user.role === 'admin' ? (
                         <span className="font-medium text-green-600">YES</span>
+                      ) : isAdmin ? (
+                        <div className="flex items-center">
+                          <span className="font-medium mr-2">
+                            {user.edit_pricehist ? "YES" : "NO"}
+                          </span>
+                          <Switch
+                            checked={user.edit_pricehist}
+                            onCheckedChange={(checked) => 
+                              handlePermissionChange(user.id, "pricehist", "can_edit", checked)
+                            }
+                          />
+                        </div>
                       ) : (
-                        <span className="font-medium">{user.edit_pricehist ? "YES" : "NO"}</span>
+                        <span className="font-medium">
+                          {user.edit_pricehist ? "YES" : "NO"}
+                        </span>
                       )}
                     </TableCell>
                     <TableCell>
-                      {user.email === "doloritolawrence@gmail.com" || user.role === 'admin' ? (
+                      {user.email === ADMIN_EMAIL || user.role === 'admin' ? (
                         <span className="font-medium text-green-600">YES</span>
+                      ) : isAdmin ? (
+                        <div className="flex items-center">
+                          <span className="font-medium mr-2">
+                            {user.delete_pricehist ? "YES" : "NO"}
+                          </span>
+                          <Switch
+                            checked={user.delete_pricehist}
+                            onCheckedChange={(checked) => 
+                              handlePermissionChange(user.id, "pricehist", "can_delete", checked)
+                            }
+                          />
+                        </div>
                       ) : (
-                        <span className="font-medium">{user.delete_pricehist ? "YES" : "NO"}</span>
+                        <span className="font-medium">
+                          {user.delete_pricehist ? "YES" : "NO"}
+                        </span>
                       )}
                     </TableCell>
                     <TableCell>
-                      {user.email === "doloritolawrence@gmail.com" || user.role === 'admin' ? (
+                      {user.email === ADMIN_EMAIL || user.role === 'admin' ? (
                         <span className="font-medium text-green-600">YES</span>
+                      ) : isAdmin ? (
+                        <div className="flex items-center">
+                          <span className="font-medium mr-2">
+                            {user.add_pricehist ? "YES" : "NO"}
+                          </span>
+                          <Switch
+                            checked={user.add_pricehist}
+                            onCheckedChange={(checked) => 
+                              handlePermissionChange(user.id, "pricehist", "can_add", checked)
+                            }
+                          />
+                        </div>
                       ) : (
-                        <span className="font-medium">{user.add_pricehist ? "YES" : "NO"}</span>
+                        <span className="font-medium">
+                          {user.add_pricehist ? "YES" : "NO"}
+                        </span>
                       )}
                     </TableCell>
                   </TableRow>
@@ -388,11 +489,8 @@ const UserPermissionsTable = () => {
           </Table>
         </div>
         
-        {/* Product Activity Log - Matching the image */}
+        {/* Product Activity Log */}
         <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Only soft delete POV of Admin</CardTitle>
-          </CardHeader>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
@@ -404,18 +502,41 @@ const UserPermissionsTable = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {Object.entries(productActivity).map(([product, data]) => (
-                  <TableRow key={product}>
-                    <TableCell>{product}</TableCell>
-                    <TableCell>{data.action}</TableCell>
-                    <TableCell>{data.user} {data.timestamp}</TableCell>
-                    <TableCell>
-                      {data.action === "RECOVERED" && (
-                        "Recover"
-                      )}
+                {activityLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-6">
+                      <div className="flex justify-center items-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        <span className="ml-2">Loading activity...</span>
+                      </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : productActivity.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
+                      No product activity found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  productActivity.map((activity) => (
+                    <TableRow key={`${activity.id}-${activity.timestamp}`}>
+                      <TableCell>{activity.product}</TableCell>
+                      <TableCell>{activity.action}</TableCell>
+                      <TableCell>{activity.user} - {activity.timestamp}</TableCell>
+                      <TableCell>
+                        {activity.action !== "RECOVERED" && isAdmin && (
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleRecover(activity.id)}
+                          >
+                            Recover
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </CardContent>
