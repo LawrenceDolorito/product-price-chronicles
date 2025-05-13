@@ -61,25 +61,7 @@ const UserPermissionsTable = () => {
     fetchUsersWithPermissions();
     fetchProductActivity();
 
-    // Enable Supabase realtime for product table
-    supabase
-      .from('product')
-      .on('*', (payload) => {
-        console.log('Product table change detected:', payload);
-        fetchProductActivity(); // Refresh activity whenever product changes
-      })
-      .subscribe();
-
-    // Enable Supabase realtime for profiles table
-    supabase
-      .from('profiles')
-      .on('*', (payload) => {
-        console.log('Profiles table change detected:', payload);
-        fetchUsersWithPermissions(); // Refresh users whenever profiles change
-      })
-      .subscribe();
-
-    // Set up a subscription for real-time updates to product status changes
+    // Set up a subscription for real-time updates to product table changes
     const productChannel = supabase
       .channel('product-changes')
       .on(
@@ -92,8 +74,22 @@ const UserPermissionsTable = () => {
       )
       .subscribe();
 
+    // Set up a subscription for real-time updates to profiles table changes
+    const profilesChannel = supabase
+      .channel('profiles-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        (payload) => {
+          console.log("Profiles change detected:", payload);
+          fetchUsersWithPermissions(); // Refresh users when profiles change
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(productChannel);
+      supabase.removeChannel(profilesChannel);
     };
   }, []);
 
