@@ -1,126 +1,134 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+// Simple payload type that avoids excessive nesting
+type SimplePayload = {
+  eventType: string;
+  schema: string;
+  table: string;
+  [key: string]: any;
+};
+
 export async function createViewOnlyUser() {
   try {
-    // Generate a unique username for the view-only user
-    const timestamp = new Date().getTime();
-    const viewerEmail = `viewer${timestamp}@example.com`;
-    const viewerPassword = `Viewer${timestamp}!`;
+    // Generate random password and viewer email
+    const randomString = Math.random().toString(36).substring(2, 10);
+    const viewerEmail = `viewer-${randomString}@example.com`;
+    const viewerPassword = `View-${randomString}-${Math.floor(Math.random() * 1000)}`;
     
-    // 1. First create a user profile
-    const { data: userData, error: userError } = await supabase
-      .from('profiles')
-      .insert({
-        id: crypto.randomUUID(),
-        first_name: "View-Only",
-        last_name: "User",
-        email: viewerEmail,
-        role: "viewer",
-        role_key: "viewer",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .select();
-      
-    if (userError) throw userError;
-    
-    const newUserId = userData[0].id;
-    
-    // 2. Create no-permissions for product table
-    await supabase
-      .from('user_permissions')
-      .insert({
-        user_id: newUserId,
-        table_name: "product",
-        can_add: false,
-        can_edit: false,
-        can_delete: false
-      });
-    
-    // 3. Create no-permissions for pricehist table
-    await supabase
-      .from('user_permissions')
-      .insert({
-        user_id: newUserId,
-        table_name: "pricehist",
-        can_add: false,
-        can_edit: false,
-        can_delete: false
-      });
-    
-    toast.success(`View-only user created successfully!`, {
-      description: `Email: ${viewerEmail} | Password: ${viewerPassword}`,
-      duration: 10000
+    // Create the user in Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: viewerEmail,
+      password: viewerPassword
     });
     
-    return { viewerEmail, viewerPassword, success: true };
+    if (authError) throw authError;
+    
+    if (authData.user) {
+      // Update profile to set as viewer
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          role: 'viewer',
+          role_key: 'viewer',
+          first_name: 'Demo',
+          last_name: 'Viewer'
+        })
+        .eq('id', authData.user.id);
+        
+      if (profileError) throw profileError;
+      
+      // Set permissions as view-only (all false)
+      await setUpViewerPermissions(authData.user.id);
+      
+      toast.success("View-only user created successfully");
+      return { 
+        success: true, 
+        viewerEmail, 
+        viewerPassword 
+      };
+    }
+    
+    return { success: false };
   } catch (error) {
     console.error("Error creating view-only user:", error);
     toast.error("Failed to create view-only user");
-    return { success: false, error };
+    return { success: false };
   }
 }
 
 export async function seedReferenceUsers() {
   try {
-    // Check if we already have some test users
-    const { data: existingUsers, error: checkError } = await supabase
-      .from('profiles')
-      .select('email')
-      .in('email', ['testuser1@example.com', 'testuser2@example.com', 'testuser3@example.com']);
-      
-    if (checkError) throw checkError;
+    // Create a regular user
+    const { data: regularUserData, error: regularUserError } = await supabase.auth.signUp({
+      email: `user-${Math.random().toString(36).substring(2, 10)}@example.com`,
+      password: `Password-${Math.random().toString(36).substring(2, 10)}`
+    });
     
-    // If we already have these test users, don't add them again
-    if (existingUsers && existingUsers.length >= 3) {
-      console.log('Reference users already exist');
-      return { success: true, message: 'Reference users already exist' };
+    if (regularUserError) throw regularUserError;
+    
+    // Create an editor user
+    const { data: editorUserData, error: editorUserError } = await supabase.auth.signUp({
+      email: `editor-${Math.random().toString(36).substring(2, 10)}@example.com`,
+      password: `Password-${Math.random().toString(36).substring(2, 10)}`
+    });
+    
+    if (editorUserError) throw editorUserError;
+    
+    // Update profiles and set permissions
+    if (regularUserData.user) {
+      await supabase
+        .from('profiles')
+        .update({
+          role: 'user',
+          role_key: 'user',
+          first_name: 'Regular',
+          last_name: 'User'
+        })
+        .eq('id', regularUserData.user.id);
+      
+      await supabase
+        .from('user_permissions')
+        .insert([
+          { user_id: regularUserData.user.id, table_name: 'product', can_add: true, can_edit: false, can_delete: false },
+          { user_id: regularUserData.user.id, table_name: 'pricehist', can_add: true, can_edit: false, can_delete: false }
+        ]);
     }
     
-    // Otherwise, create our sample users
-    const sampleUsers = [
-      {
-        id: crypto.randomUUID(),
-        first_name: "John",
-        last_name: "Doe",
-        email: "testuser1@example.com",
-        role: "user",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      },
-      {
-        id: crypto.randomUUID(),
-        first_name: "Jane",
-        last_name: "Smith",
-        email: "testuser2@example.com",
-        role: "user",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      },
-      {
-        id: crypto.randomUUID(),
-        first_name: "Alex",
-        last_name: "Johnson",
-        email: "testuser3@example.com",
-        role: "user",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-    ];
-    
-    // Insert the sample users
-    const { error: insertError } = await supabase
-      .from('profiles')
-      .insert(sampleUsers);
+    if (editorUserData.user) {
+      await supabase
+        .from('profiles')
+        .update({
+          role: 'user',
+          role_key: 'user',
+          first_name: 'Editor',
+          last_name: 'User'
+        })
+        .eq('id', editorUserData.user.id);
       
-    if (insertError) throw insertError;
+      await supabase
+        .from('user_permissions')
+        .insert([
+          { user_id: editorUserData.user.id, table_name: 'product', can_add: true, can_edit: true, can_delete: false },
+          { user_id: editorUserData.user.id, table_name: 'pricehist', can_add: true, can_edit: true, can_delete: false }
+        ]);
+    }
     
-    toast.success("Reference users added successfully");
+    toast.success("Reference users created successfully");
     return { success: true };
   } catch (error) {
-    console.error("Error adding reference users:", error);
-    toast.error("Failed to add reference users");
-    return { success: false, error };
+    console.error("Error creating reference users:", error);
+    toast.error("Failed to create reference users");
+    return { success: false };
   }
+}
+
+async function setUpViewerPermissions(userId: string) {
+  await supabase
+    .from('user_permissions')
+    .insert([
+      { user_id: userId, table_name: 'product', can_add: false, can_edit: false, can_delete: false },
+      { user_id: userId, table_name: 'pricehist', can_add: false, can_edit: false, can_delete: false }
+    ]);
 }
