@@ -4,23 +4,10 @@ import { Table, TableBody, TableCaption } from "@/components/ui/table";
 import UserPermissionsTableHeader from "./UserPermissionsTableHeader";
 import EmptyOrLoadingRow from "./EmptyOrLoadingRow";
 import UserPermissionRow from "./UserPermissionRow";
-
-export type UserPermissionRow = {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  role: string;
-  edit_product: boolean;
-  delete_product: boolean;
-  add_product: boolean;
-  edit_pricehist: boolean;
-  delete_pricehist: boolean;
-  add_pricehist: boolean;
-};
+import { UserPermissionRow as UserPermissionRowType } from "@/hooks/useUserPermissions";
 
 interface UserPermissionsListProps {
-  users: UserPermissionRow[];
+  users: UserPermissionRowType[];
   loading: boolean;
   isAdmin: boolean;
   adminEmail: string;

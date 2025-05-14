@@ -25,7 +25,7 @@ export type ChartData = {
 // Use a simpler type for Supabase realtime payloads to avoid excessive type instantiation
 export type SupabaseRealtimePayload = {
   commit_timestamp: string;
-  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
+  eventType: string;
   schema: string;
   table: string;
   new: Record<string, any>;
