@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -74,6 +75,70 @@ export function useUserPermissions() {
       toast.error("Failed to load user permissions");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const createViewOnlyUser = async () => {
+    try {
+      // Generate a unique username for the view-only user
+      const timestamp = new Date().getTime();
+      const viewerEmail = `viewer${timestamp}@example.com`;
+      const viewerPassword = `Viewer${timestamp}!`;
+      
+      // 1. First create a user profile
+      const { data: userData, error: userError } = await supabase
+        .from('profiles')
+        .insert({
+          id: crypto.randomUUID(),
+          first_name: "View-Only",
+          last_name: "User",
+          email: viewerEmail,
+          role: "viewer",
+          role_key: "viewer",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select();
+        
+      if (userError) throw userError;
+      
+      const newUserId = userData[0].id;
+      
+      // 2. Create no-permissions for product table
+      await supabase
+        .from('user_permissions')
+        .insert({
+          user_id: newUserId,
+          table_name: "product",
+          can_add: false,
+          can_edit: false,
+          can_delete: false
+        });
+      
+      // 3. Create no-permissions for pricehist table
+      await supabase
+        .from('user_permissions')
+        .insert({
+          user_id: newUserId,
+          table_name: "pricehist",
+          can_add: false,
+          can_edit: false,
+          can_delete: false
+        });
+      
+      toast.success(`View-only user created successfully!`, {
+        description: `Email: ${viewerEmail} | Password: ${viewerPassword}`,
+        duration: 10000
+      });
+      
+      // Refresh user list
+      fetchUsersWithPermissions();
+      
+      return { viewerEmail, viewerPassword };
+    } catch (error) {
+      console.error("Error creating view-only user:", error);
+      toast.error("Failed to create view-only user");
+      return null;
     }
   };
 
@@ -244,6 +309,7 @@ export function useUserPermissions() {
     setSearchQuery,
     loading,
     handlePermissionChange,
-    seedReferenceUsers
+    seedReferenceUsers,
+    createViewOnlyUser
   };
 }

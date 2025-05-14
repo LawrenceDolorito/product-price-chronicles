@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
@@ -32,6 +33,17 @@ const UserRoleSelector = ({
         
       if (error) throw error;
       
+      // Now update the user permissions based on role
+      if (role === 'viewer') {
+        // For viewer role: remove all permissions
+        await updateUserPermissions(userId, 'product', false, false, false);
+        await updateUserPermissions(userId, 'pricehist', false, false, false);
+      } else if (role === 'user') {
+        // For regular user role: set default permissions
+        await updateUserPermissions(userId, 'product', true, true, false);
+        await updateUserPermissions(userId, 'pricehist', true, false, false);
+      }
+      
       onRoleChange(role);
       toast.success(`User role updated to ${role}`);
     } catch (error) {
@@ -39,6 +51,47 @@ const UserRoleSelector = ({
       toast.error("Failed to update user role");
     } finally {
       setIsUpdating(false);
+    }
+  };
+  
+  // Helper function to update user permissions
+  const updateUserPermissions = async (
+    userId: string, 
+    tableName: string, 
+    canAdd: boolean, 
+    canEdit: boolean, 
+    canDelete: boolean
+  ) => {
+    // Check if permission record exists
+    const { data: existingPermission } = await supabase
+      .from("user_permissions")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("table_name", tableName)
+      .single();
+      
+    if (existingPermission) {
+      // Update existing permission
+      await supabase
+        .from("user_permissions")
+        .update({ 
+          can_add: canAdd, 
+          can_edit: canEdit, 
+          can_delete: canDelete,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", existingPermission.id);
+    } else {
+      // Create new permission record
+      await supabase
+        .from("user_permissions")
+        .insert({
+          user_id: userId,
+          table_name: tableName,
+          can_add: canAdd,
+          can_edit: canEdit,
+          can_delete: canDelete
+        });
     }
   };
 
@@ -60,6 +113,7 @@ const UserRoleSelector = ({
         <SelectContent>
           <SelectItem value="admin">Admin</SelectItem>
           <SelectItem value="user">User</SelectItem>
+          <SelectItem value="viewer">Viewer</SelectItem>
           <SelectItem value="blocked">Blocked</SelectItem>
         </SelectContent>
       </Select>

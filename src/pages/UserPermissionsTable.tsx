@@ -2,7 +2,7 @@
 import React from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Eye, Shield, Users } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import UserSearchBar from "@/components/users/UserSearchBar";
@@ -25,7 +25,8 @@ const UserPermissionsTable = () => {
     setSearchQuery,
     loading,
     handlePermissionChange,
-    seedReferenceUsers
+    seedReferenceUsers,
+    createViewOnlyUser
   } = useUserPermissions();
 
   const {
@@ -48,13 +49,24 @@ const UserPermissionsTable = () => {
           </div>
           <div className="mt-4 md:mt-0 flex space-x-2">
             {isAdmin && (
-              <Button
-                variant="secondary"
-                onClick={seedReferenceUsers}
-                className="flex items-center gap-2"
-              >
-                Add Reference Users
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  onClick={createViewOnlyUser}
+                  className="flex items-center gap-2"
+                >
+                  <Eye className="h-4 w-4" />
+                  Create View-Only User
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={seedReferenceUsers}
+                  className="flex items-center gap-2"
+                >
+                  <Users className="h-4 w-4" />
+                  Add Reference Users
+                </Button>
+              </>
             )}
             <Button
               variant="outline"
