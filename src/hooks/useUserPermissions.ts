@@ -283,7 +283,7 @@ export function useUserPermissions() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'profiles' },
-        (payload) => {
+        (payload: SimpleSupabasePayload) => {
           console.log("Profiles change detected:", payload);
           fetchUsersWithPermissions(); // Refresh users when profiles change
         }
