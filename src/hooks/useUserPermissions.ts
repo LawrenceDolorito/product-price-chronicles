@@ -17,6 +17,16 @@ export type UserPermissionRow = {
   add_pricehist: boolean;
 };
 
+// Simplified type for Supabase realtime payload to avoid excessive type instantiation
+type SimpleSupabasePayload = {
+  commit_timestamp: string;
+  eventType: string;
+  schema: string;
+  table: string;
+  new: Record<string, any>;
+  old: Record<string, any>;
+};
+
 export function useUserPermissions() {
   const [users, setUsers] = useState<UserPermissionRow[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<UserPermissionRow[]>([]);
