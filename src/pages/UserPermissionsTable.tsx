@@ -1,7 +1,8 @@
+
 import React from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Eye, Shield, Users } from "lucide-react";
+import { ArrowLeft, Eye, Users } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import UserSearchBar from "@/components/users/UserSearchBar";
@@ -9,9 +10,7 @@ import UserPermissionsList from "@/components/users/UserPermissionsList";
 import ProductActivityLog from "@/components/products/ProductActivityLog";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { useProductActivity } from "@/hooks/useProductActivity";
-
-// Define admin email constant
-const ADMIN_EMAIL = "doloritolawrence@gmail.com";
+import { ADMIN_EMAIL } from "@/constants/admin";
 
 const UserPermissionsTable = () => {
   const { user } = useAuth();
@@ -41,9 +40,9 @@ const UserPermissionsTable = () => {
       <main className="container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Manage User</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Manage User Permissions</h1>
             <p className="text-gray-600 mt-1">
-              Manage user permissions for product and price history tables
+              Control user access to product and price history data
             </p>
           </div>
           <div className="mt-4 md:mt-0 flex space-x-2">

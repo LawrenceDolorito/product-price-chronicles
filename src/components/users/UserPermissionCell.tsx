@@ -43,7 +43,7 @@ const UserPermissionCell = ({
 
   // Non-admin can only view permissions
   return (
-    <span className="font-medium">
+    <span className={permissionValue ? "font-medium text-green-600" : "font-medium text-red-600"}>
       {permissionValue ? "YES" : "NO"}
     </span>
   );

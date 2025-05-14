@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { UserPermissionRow, SupabaseRealtimePayload } from "@/types/userPermissions";
+import { UserPermissionRow } from "@/types/userPermissions";
 import { fetchUsersWithPermissions } from "@/services/userProfileService";
 import { updatePermission } from "@/services/permissionService";
 import { createViewOnlyUser as createViewOnlyUserService, seedReferenceUsers as seedReferenceUsersService } from "@/services/userCreationService";
@@ -61,6 +61,7 @@ export function useUserPermissions() {
     const result = await createViewOnlyUserService();
     if (result.success) {
       loadUsersWithPermissions();
+      toast.success(`View-only user created: ${result.viewerEmail}`);
       return { viewerEmail: result.viewerEmail, viewerPassword: result.viewerPassword };
     }
     return null;
@@ -82,7 +83,7 @@ export function useUserPermissions() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'profiles' },
-        (payload: SupabaseRealtimePayload) => {
+        (payload: any) => {
           console.log("Profiles change detected:", payload);
           loadUsersWithPermissions(); // Refresh users when profiles change
         }

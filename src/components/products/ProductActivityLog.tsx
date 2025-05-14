@@ -49,6 +49,7 @@ const ProductActivityLog = ({
             <TableRow>
               <TableHead>Product</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Changed By</TableHead>
               <TableHead>Timestamp</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -56,7 +57,7 @@ const ProductActivityLog = ({
           <TableBody>
             {activityLoading ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-6">
+                <TableCell colSpan={5} className="text-center py-6">
                   <div className="flex justify-center items-center">
                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
                     <span className="ml-2">Loading activity...</span>
@@ -65,7 +66,7 @@ const ProductActivityLog = ({
               </TableRow>
             ) : productActivity.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
+                <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
                   No product activity found
                 </TableCell>
               </TableRow>
@@ -73,7 +74,16 @@ const ProductActivityLog = ({
               productActivity.map((activity) => (
                 <TableRow key={`${activity.id}-${activity.timestamp}`}>
                   <TableCell>{activity.product}</TableCell>
-                  <TableCell>{activity.action}</TableCell>
+                  <TableCell>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      activity.action === 'RECOVERED' ? 'bg-green-100 text-green-800' :
+                      activity.action === 'DELETED' ? 'bg-red-100 text-red-800' : 
+                      'bg-blue-100 text-blue-800'
+                    }`}>
+                      {activity.action}
+                    </span>
+                  </TableCell>
+                  <TableCell>{activity.user}</TableCell>
                   <TableCell>{activity.timestamp}</TableCell>
                   <TableCell>
                     {activity.action !== "RECOVERED" && isAdmin && (

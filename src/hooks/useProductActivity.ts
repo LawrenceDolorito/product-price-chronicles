@@ -28,14 +28,49 @@ export function useProductActivity() {
 
       if (productsError) throw productsError;
       
+      // Get all user profiles to map IDs to names
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name');
+      
+      // Create a map of user IDs to names
+      const userMap = new Map();
+      if (profilesData) {
+        profilesData.forEach((profile: any) => {
+          const name = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+          userMap.set(profile.id, name || 'Unknown User');
+        });
+      }
+      
       // Transform into activity entries
-      const activities: ProductActivity[] = productsData.map((product: any) => ({
-        id: product.prodcode,
-        product: product.description || product.prodcode,
-        action: product.status || 'UNKNOWN',
-        user: 'System', // We'll update this when we have actual user info
-        timestamp: new Date(product.stamp).toLocaleString(),
-      }));
+      const activities: ProductActivity[] = productsData.map((product: any) => {
+        // Try to extract user ID from status if it contains JSON
+        let userId = null;
+        let userName = 'System';
+        let statusText = product.status || 'UNKNOWN';
+        
+        try {
+          // Check if status might be JSON with user info
+          if (product.status && (product.status.includes('{') || product.status.includes('['))) {
+            const statusObj = JSON.parse(product.status);
+            if (statusObj.userId) {
+              userId = statusObj.userId;
+              userName = userMap.get(userId) || 'Unknown User';
+              statusText = statusObj.action || statusObj.status || 'UPDATED';
+            }
+          }
+        } catch (e) {
+          // Not JSON, use as is
+        }
+        
+        return {
+          id: product.prodcode,
+          product: product.description || product.prodcode,
+          action: statusText,
+          user: userName,
+          timestamp: new Date(product.stamp).toLocaleString(),
+        };
+      });
       
       setProductActivity(activities);
     } catch (error) {
@@ -48,10 +83,21 @@ export function useProductActivity() {
 
   const handleRecover = async (productId: string) => {
     try {
+      // Store who performed the recovery
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      
+      // Create a status object with user info
+      const statusObject = {
+        action: 'RECOVERED',
+        userId: userId,
+        timestamp: new Date().toISOString()
+      };
+      
       await supabase
         .from('product')
         .update({ 
-          status: 'RECOVERED',
+          status: JSON.stringify(statusObject),
           stamp: new Date().toISOString()
         })
         .eq('prodcode', productId);
