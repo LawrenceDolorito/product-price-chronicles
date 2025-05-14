@@ -1,8 +1,7 @@
-
 import React from "react";
 import { TableCell, TableRow } from "@/components/ui/table";
 import UserPermissionCell from "./UserPermissionCell";
-import { UserPermissionRow as UserPermissionRowType } from "@/hooks/useUserPermissions";
+import { UserPermissionRow as UserPermissionRowType } from "@/types/userPermissions";
 
 interface UserPermissionRowProps {
   user: UserPermissionRowType;

@@ -1,10 +1,9 @@
-
 import React from "react";
 import { Table, TableBody, TableCaption } from "@/components/ui/table";
 import UserPermissionsTableHeader from "./UserPermissionsTableHeader";
 import EmptyOrLoadingRow from "./EmptyOrLoadingRow";
 import UserPermissionRow from "./UserPermissionRow";
-import { UserPermissionRow as UserPermissionRowType } from "@/hooks/useUserPermissions";
+import { UserPermissionRow as UserPermissionRowType } from "@/types/userPermissions";
 
 interface UserPermissionsListProps {
   users: UserPermissionRowType[];
