@@ -147,8 +147,8 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 auth-container">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-primary">PriceTracker</h1>
-          <p className="mt-2 text-gray-600">Track product prices and save money</p>
+          <h1 className="text-4xl font-bold text-primary">Product Management System</h1>
+          <p className="mt-2 text-gray-600">ChatGemini's Product Manager</p>
         </div>
         
         <Card className="w-full bg-white shadow-xl">
